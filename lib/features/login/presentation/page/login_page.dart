@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:iconsax_flutter/iconsax_flutter.dart';
 
-import '../../../../core/style/colors/app_colors.dart';
-import '../../../../widgets/app_logo_widget.dart';
+import '../../../../app/app_routes.dart';
+import '../../../../core/utils/app_assets.dart';
+import '../../../../widgets/city_watermark_widget.dart';
 import '../../../../widgets/custom_buttons.dart';
 import '../../../../widgets/custom_text_field.dart';
 import '../controller/login_controller.dart';
@@ -16,221 +16,345 @@ class LoginPage extends GetView<LoginController> {
     final theme = context.theme;
     final textTheme = context.textTheme;
     final colorScheme = theme.colorScheme;
+    final primaryColor = colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOutQuad,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, (1 - value) * 30),
-                    child: child,
+      body: Stack(
+        children: [
+          // Top-Left Curved Decorative Orange Shape
+          Positioned(
+            top: 0,
+            left: 0,
+            child: ClipPath(
+              clipper: TopLeftOrangeCornerClipper(),
+              child: Container(
+                width: 140,
+                height: 180,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFE64A19), Color(0xFFD84315)],
                   ),
-                );
-              },
-              child: Form(
-                key: controller.formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Hero Logo Container
-                    Center(
-                      child: Hero(
-                        tag: 'app_logo_hero',
-                        child: Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surface,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: colorScheme.primary.withValues(
-                                  alpha: 0.15,
-                                ),
-                                blurRadius: 28,
-                                spreadRadius: 4,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: const AppLogoWidget(
-                            height: 90,
-                            width: 90,
-                            showShadow: false,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+                ),
+              ),
+            ),
+          ),
 
-                    // Hero Header Titles
-                    Hero(
-                      tag: 'app_brand_name_hero',
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: Text(
-                          'Welcome to Sai Associates',
-                          textAlign: TextAlign.center,
-                          style: textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 24,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sign in to manage your real estate portal',
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 32),
+          // Faint City Skyline Watermark in Header Background
+          Positioned(
+            top: 20,
+            left: 0,
+            right: 0,
+            height: 160,
+            child: CitySkylineWatermarkWidget(height: 160, color: primaryColor),
+          ),
 
-                    // Hero Login Card Container (animates into Dashboard Header)
-                    Hero(
-                      tag: 'app_dashboard_header_hero',
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: colorScheme.outline.withValues(alpha: 0.6),
+          // Main Scrollable Body Content
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                child: Form(
+                  key: controller.formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Top Header Section: PBD Group Logo at Top-Right
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4, top: 4),
+                          child: Hero(
+                            tag: 'app_logo_hero',
+                            child: Image.asset(
+                              AppAssets.imgAppLogo,
+                              height: Get.height * 0.1,
+                              fit: BoxFit.contain,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              CustomTextField(
-                                controller: controller.usernameController,
-                                labelText: 'Associate ID / Username',
-                                hintText: 'Enter your ID (e.g. AC010203)',
-                                prefixIcon: Iconsax.user,
-                                textInputAction: TextInputAction.next,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your Username / ID';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 20),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-                              CustomTextField(
-                                controller: controller.passwordController,
-                                labelText: 'Password',
-                                hintText: 'Enter your password',
-                                prefixIcon: Iconsax.lock,
-                                isPassword: true,
-                                textInputAction: TextInputAction.done,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your Password';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
+                      // Welcome Back Header & Subtitle
+                      Text(
+                        'Welcome Back!',
+                        style: textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 26,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
 
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Obx(
-                                    () => Row(
-                                      children: [
-                                        SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: Checkbox(
-                                            value: controller.rememberMe.value,
-                                            onChanged:
-                                                controller.toggleRememberMe,
-                                            activeColor: AppColors.primary,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
+                      // Primary Orange Rounded Bar Accent Underneath "Welcome Back!"
+                      Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      Text(
+                        'Sign in to access your real estate dashboard',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.65),
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+
+                      // Login Card with Floating Top User Avatar Badge
+                      Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.topCenter,
+                        children: [
+                          // White Card Container
+                          Container(
+                            margin: const EdgeInsets.only(top: 28),
+                            padding: const EdgeInsets.fromLTRB(20, 48, 20, 24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: Colors.black.withValues(alpha: 0.04),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                CustomTextField(
+                                  controller: controller.usernameController,
+                                  labelText: 'Username',
+                                  hintText: 'Enter your username',
+                                  prefixIcon: AppAssets.icUser,
+                                  prefixIconColor: primaryColor,
+                                  textInputAction: TextInputAction.next,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your Username / ID';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 20),
+
+                                CustomTextField(
+                                  controller: controller.passwordController,
+                                  labelText: 'Password',
+                                  hintText: 'Enter your password',
+                                  prefixIcon: AppAssets.icLock,
+                                  prefixIconColor: primaryColor,
+                                  isPassword: true,
+                                  textInputAction: TextInputAction.done,
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter your Password';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Remember Me Checkbox & Forgot Password Row
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Obx(
+                                      () => Row(
+                                        children: [
+                                          SizedBox(
+                                            height: 22,
+                                            width: 22,
+                                            child: Checkbox(
+                                              value:
+                                                  controller.rememberMe.value,
+                                              onChanged:
+                                                  controller.toggleRememberMe,
+                                              activeColor: primaryColor,
+                                              side: BorderSide(
+                                                color: colorScheme.onSurface
+                                                    .withValues(alpha: 0.4),
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Remember Me',
-                                          style: textTheme.bodyMedium?.copyWith(
-                                            fontSize: 13,
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Remember Me',
+                                            style: textTheme.bodyMedium
+                                                ?.copyWith(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: colorScheme.onSurface
+                                                      .withValues(alpha: 0.75),
+                                                ),
                                           ),
+                                        ],
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Get.toNamed(AppRoutes.forgotPassword);
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text(
+                                        'Forgot Password?',
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: primaryColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Get.snackbar(
-                                        'Forgot Password',
-                                        'Please contact your branch admin to reset your password.',
-                                        snackPosition: SnackPosition.BOTTOM,
-                                      );
-                                    },
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: Text(
-                                      'Forgot Password?',
-                                      style: textTheme.bodyMedium?.copyWith(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+
+                                // Sign In Button with Right-Aligned White Circle Arrow Badge
+                                Obx(
+                                  () => CustomButton(
+                                    title: 'SIGN IN',
+                                    height: 52,
+                                    borderRadius: 14,
+                                    backgroundColor: primaryColor,
+                                    isLoading: controller.isLoading.value,
+                                    onPressed: controller.login,
+                                    trailingWidget: Container(
+                                      width: 36,
+                                      height: 36,
+                                      margin: const EdgeInsets.only(right: 6),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          AppAssets.icArrowRight,
+                                          color: primaryColor,
+                                          size: 18,
+                                        ),
                                       ),
                                     ),
                                   ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Floating Avatar Badge
+                          Positioned(
+                            top: 0,
+                            child: Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: primaryColor.withValues(alpha: 0.15),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.08),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
                                 ],
                               ),
-                              const SizedBox(height: 24),
-
-                              Obx(
-                                () => CustomButton(
-                                  title: 'SIGN IN',
-                                  isLoading: controller.isLoading.value,
-                                  onPressed: controller.login,
+                              child: Center(
+                                child: Icon(
+                                  AppAssets.icUser,
+                                  color: primaryColor,
+                                  size: 26,
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                    Text(
-                      'Sai Associates Real Estate Portal',
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      // Quick Action Feature Icons Row (Manage Properties, Track Performance, Grow Network)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildFeatureItem(
+                            context: context,
+                            icon: AppAssets.icManageProperties,
+                            labelLine1: 'Manage',
+                            labelLine2: 'Properties',
+                          ),
+                          _buildFeatureDot(context),
+                          _buildFeatureItem(
+                            context: context,
+                            icon: AppAssets.icTrackPerformance,
+                            labelLine1: 'Track',
+                            labelLine2: 'Performance',
+                          ),
+                          _buildFeatureDot(context),
+                          _buildFeatureItem(
+                            context: context,
+                            icon: AppAssets.icGrowNetwork,
+                            labelLine1: 'Grow Your',
+                            labelLine2: 'Network',
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 60),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: SizedBox(
+        height: context.mediaQueryPadding.bottom + 40,
+        child: ClipPath(
+          clipper: BottomOrangeFooterClipper(),
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFE64A19), Color(0xFFD84315)],
+              ),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: Text(
+                  'PBD Group Real Estate Portal',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    letterSpacing: 0.4,
+                  ),
                 ),
               ),
             ),
@@ -239,4 +363,111 @@ class LoginPage extends GetView<LoginController> {
       ),
     );
   }
+
+  // Feature Action Item Widget
+  Widget _buildFeatureItem({
+    required BuildContext context,
+    required IconData icon,
+    required String labelLine1,
+    required String labelLine2,
+  }) {
+    final theme = context.theme;
+    final textTheme = context.textTheme;
+    final colorScheme = theme.colorScheme;
+    final primaryColor = colorScheme.primary;
+
+    return Column(
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: primaryColor.withValues(alpha: 0.05),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: primaryColor.withValues(alpha: 0.15),
+              width: 1,
+            ),
+          ),
+          child: Center(child: Icon(icon, color: primaryColor, size: 24)),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          labelLine1,
+          textAlign: TextAlign.center,
+          style: textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 11,
+            color: colorScheme.onSurface.withValues(alpha: 0.75),
+          ),
+        ),
+        Text(
+          labelLine2,
+          textAlign: TextAlign.center,
+          style: textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: 11,
+            color: colorScheme.onSurface.withValues(alpha: 0.75),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Dot Separator Widget between Feature Items
+  Widget _buildFeatureDot(BuildContext context) {
+    return Container(
+      width: 3,
+      height: 3,
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: context.theme.colorScheme.onSurface.withValues(alpha: 0.25),
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
+// Clipper for Top-Left Orange Corner Shape
+class TopLeftOrangeCornerClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(size.width, 0);
+    path.quadraticBezierTo(size.width * 0.2, size.height * 0.8, 0, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+// Clipper for Bottom Orange Curved Footer Banner
+class BottomOrangeFooterClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(0, size.height * 0.35);
+
+    final controlPoint = Offset(size.width * 0.5, -size.height * 0.1);
+    final endPoint = Offset(size.width, size.height * 0.35);
+
+    path.quadraticBezierTo(
+      controlPoint.dx,
+      controlPoint.dy,
+      endPoint.dx,
+      endPoint.dy,
+    );
+
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

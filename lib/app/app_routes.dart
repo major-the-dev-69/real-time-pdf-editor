@@ -3,9 +3,12 @@ import 'package:get/get.dart';
 import '../features/dashboard/binding/dashboard_binding.dart';
 import '../features/dashboard/presentation/page/dashboard_page.dart';
 
+import '../features/login/binding/forgot_password_binding.dart';
 import '../features/login/binding/login_binding.dart';
 import '../features/login/binding/splash_binding.dart';
+import '../features/login/presentation/page/forgot_password_page.dart';
 import '../features/login/presentation/page/login_page.dart';
+import '../features/login/presentation/page/reset_password_page.dart';
 import '../features/login/presentation/page/splash_page.dart';
 import '../features/notification/binding/notification_binding.dart';
 import '../features/notification/presentation/page/notification_page.dart';
@@ -15,6 +18,8 @@ class AppRoutes {
 
   static const splash = '/';
   static const login = '/login';
+  static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/reset-password';
   static const dashboard = '/dashboard';
   static const profile = '/profile';
   static const incomes = '/incomes';
@@ -46,6 +51,20 @@ class AppPages {
       name: AppRoutes.login,
       page: () => const LoginPage(),
       binding: LoginBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.forgotPassword,
+      page: () => const ForgotPasswordPage(),
+      binding: ForgotPasswordBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.resetPassword,
+      page: () => const ResetPasswordPage(),
+      binding: ForgotPasswordBinding(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),
     ),

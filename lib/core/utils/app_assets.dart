@@ -13,6 +13,8 @@ class AppAssets {
   static const String imgBgApp = '$_imgPrefix/bg_app.jpg';
   static const String imgAppTitle = '$_imgPrefix/app_title.png';
   static const String bgWaves = '$_imgPrefix/bg_waves.svg';
+  static const String imgRealEstateVector = '$_imgPrefix/real_estate_vector.png';
+  static const String imgCityWatermark = '$_imgPrefix/city_watermark.png';
 
   /// Icons
   static const String _iconPrefix = 'assets/icons';
@@ -57,6 +59,9 @@ class AppAssets {
   static const IconData icStar = Iconsax.star_copy;
   static const IconData icCalendar = Iconsax.calendar_1_copy;
   static const IconData icDownload = Iconsax.import_copy;
+  static const IconData icManageProperties = Iconsax.building_3_copy;
+  static const IconData icTrackPerformance = Iconsax.status_up_copy;
+  static const IconData icGrowNetwork = Iconsax.people_copy;
 
   /// Animations
   static const String _animPrefix = 'assets/anim';

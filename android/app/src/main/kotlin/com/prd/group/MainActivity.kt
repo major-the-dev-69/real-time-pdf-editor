@@ -1,4 +1,4 @@
-package com.sai.associate
+package com.prd.group
 
 import io.flutter.embedding.android.FlutterActivity
 

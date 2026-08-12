@@ -8,6 +8,7 @@ class CustomTextField extends StatefulWidget {
   final String labelText;
   final String? hintText;
   final IconData? prefixIcon;
+  final Color? prefixIconColor;
   final Widget? suffixIcon;
   final bool isPassword;
   final TextInputType keyboardType;
@@ -23,6 +24,7 @@ class CustomTextField extends StatefulWidget {
     required this.labelText,
     this.hintText,
     this.prefixIcon,
+    this.prefixIconColor,
     this.suffixIcon,
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
@@ -93,7 +95,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             prefixIcon: widget.prefixIcon != null
                 ? Icon(
                     widget.prefixIcon,
-                    color: textTheme.bodyMedium?.color ?? theme.iconTheme.color,
+                    color: widget.prefixIconColor ?? colorScheme.primary,
                     size: 20,
                   )
                 : null,
