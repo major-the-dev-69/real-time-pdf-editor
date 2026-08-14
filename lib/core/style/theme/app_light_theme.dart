@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../colors/app_colors.dart';
 
-/// Modern Material 3 Light Theme for PBD Group Application.
 abstract class AppLightTheme {
   AppLightTheme._();
 
