@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/utils/app_assets.dart';
-import '../../../../widgets/city_watermark_widget.dart';
 import '../../../../widgets/custom_buttons.dart';
 import '../../../../widgets/custom_text_field.dart';
 import '../controller/login_controller.dart';
