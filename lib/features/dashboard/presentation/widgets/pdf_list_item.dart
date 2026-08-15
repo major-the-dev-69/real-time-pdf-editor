@@ -1,127 +1,199 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/app_assets.dart';
+import '../../../pdf/model/pdf_document_model.dart';
 
 class PdfListItem extends StatelessWidget {
-  final String title;
-  final String details;
-  final List<String> avatarUrls;
+  final PdfDocumentModel pdf;
+  final VoidCallback onTap;
 
   const PdfListItem({
     super.key,
-    required this.title,
-    required this.details,
-    required this.avatarUrls,
+    required this.pdf,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.picture_as_pdf_rounded,
-              color: theme.colorScheme.primary,
-              size: 28,
-            ),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+        ],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // PDF Icon Container
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  details,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
+                child: Icon(
+                  AppAssets.icPdf,
+                  color: theme.colorScheme.primary,
+                  size: 28,
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 28,
-                  child: Stack(
-                    children: List.generate(
-                      avatarUrls.length > 4 ? 4 : avatarUrls.length,
-                      (index) {
-                        return Positioned(
-                          left: index * 20.0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: theme.scaffoldBackgroundColor,
-                                width: 2,
+              ),
+              const SizedBox(width: 14),
+
+              // Details & Badges
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Document Title
+                    Text(
+                      pdf.title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+
+                    // Site Name & Project Badge Chips
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                AppAssets.icProjectBuilding,
+                                size: 10,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                pdf.projectName,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                AppAssets.icSiteMap,
+                                size: 10,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                pdf.siteName,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontSize: 10,
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // File metadata & Shared user avatars
+                    Row(
+                      children: [
+                        Text(
+                          '${pdf.updatedAt} • ${pdf.fileSize}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const Spacer(),
+                        if (pdf.sharedAvatars.isNotEmpty)
+                          SizedBox(
+                            height: 22,
+                            width: (pdf.sharedAvatars.length * 14.0) + 10,
+                            child: Stack(
+                              children: List.generate(
+                                pdf.sharedAvatars.length > 3
+                                    ? 3
+                                    : pdf.sharedAvatars.length,
+                                (index) {
+                                  return Positioned(
+                                    left: index * 12.0,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: theme.scaffoldBackgroundColor,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 10,
+                                        backgroundImage: NetworkImage(
+                                          pdf.sharedAvatars[index],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                            child: CircleAvatar(
-                              radius: 12,
-                              backgroundImage: NetworkImage(avatarUrls[index]),
-                            ),
                           ),
-                        );
-                      },
-                    )..addAll(
-                        avatarUrls.length > 4
-                            ? [
-                                Positioned(
-                                  left: 4 * 20.0,
-                                  child: Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: theme.colorScheme.surfaceContainerHigh,
-                                      border: Border.all(
-                                        color: theme.scaffoldBackgroundColor,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      '+${avatarUrls.length - 4}',
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ]
-                            : [],
-                      ),
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+
+              // View / Details Action Chevron
+              const SizedBox(width: 8),
+              Icon(
+                AppAssets.icArrowRight,
+                size: 18,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {},
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-          )
-        ],
+        ),
       ),
     );
   }

@@ -41,13 +41,14 @@ class ResetPasswordPage extends GetView<ForgotPasswordController> {
             ),
           ),
 
-          // City Skyline Watermark
           Positioned(
-            top: 20,
+            top: -60,
             left: 0,
             right: 0,
-            height: 160,
-            child: CitySkylineWatermarkWidget(height: 160, color: primaryColor),
+            child: Opacity(
+              opacity: 0.6,
+              child: Image.asset(AppAssets.imgCityWatermark),
+            ),
           ),
 
           // Main Scrollable Body Content

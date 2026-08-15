@@ -30,6 +30,7 @@ dependencies:
   webview_flutter: ^4.14.1
   webview_flutter_android: ^4.10.0
   fl_chart: ^1.2.0
+  syncfusion_flutter_pdfviewer: ^34.2.3
 
 dev_dependencies:
   flutter_test:

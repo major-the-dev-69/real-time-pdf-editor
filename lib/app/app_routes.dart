@@ -13,6 +13,10 @@ import '../features/login/presentation/page/splash_page.dart';
 import '../features/notification/binding/notification_binding.dart';
 import '../features/notification/presentation/page/notification_page.dart';
 
+import '../features/pdf/binding/pdf_binding.dart';
+import '../features/pdf/presentation/page/pdf_detail_page.dart';
+import '../features/pdf/presentation/page/pdf_open_page.dart';
+
 class AppRoutes {
   AppRoutes._();
 
@@ -28,6 +32,8 @@ class AppRoutes {
   static const newRegister = '/new-register';
   static const kyc = '/kyc';
   static const notifications = '/notifications';
+  static const pdfDetail = '/pdf-detail';
+  static const pdfOpen = '/pdf-open';
   static const welcomeLetter = '/welcome-letter';
   static const plots = '/plots';
   static const rewardIncomeDetail = '/reward-income-detail';
@@ -80,6 +86,20 @@ class AppPages {
       name: AppRoutes.notifications,
       page: () => const NotificationPage(),
       binding: NotificationBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.pdfDetail,
+      page: () => const PdfDetailPage(),
+      binding: PdfBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.pdfOpen,
+      page: () => const PdfOpenPage(),
+      binding: PdfBinding(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),
     ),
