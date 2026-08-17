@@ -93,15 +93,13 @@ class PdfOpenPage extends GetView<PdfDetailController> {
               children: [
                 // Layer 1: Syncfusion PDF Viewer
                 Obx(() {
-                  // final pdfUrl = controller.pdfDocument.value?.pdfUrl;
-                  // final validUrl = (pdfUrl != null && pdfUrl.startsWith('http'))
-                  //? pdfUrl
-                  // : fallbackPdfUrl;
                   return SfPdfViewer.network(
                     fallbackPdfUrl,
+                    pageLayoutMode: PdfPageLayoutMode.single,
                     controller: controller.pdfViewerController,
-                    canShowScrollHead: true,
-                    canShowScrollStatus: true,
+                    //  canShowScrollHead: true,
+                    //  canShowScrollStatus: true,
+                    
                     enableDoubleTapZooming:
                         controller.activeMode.value == AnnotationMode.view,
                     onDocumentLoaded: (PdfDocumentLoadedDetails details) {
