@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../core/utils/app_assets.dart';
-
 import '../../../../widgets/custom_buttons.dart';
 import '../../../../widgets/custom_text_field.dart';
 import '../controller/forgot_password_controller.dart';

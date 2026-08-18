@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sai_associates/features/pdf/presentation/controller/pdf_detail_controller.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../../core/utils/app_assets.dart';
 import '../../../../db/shared_pref_manager.dart';
 import '../../../../core/enums/user_role.dart';
-import '../controller/pdf_detail_controller.dart';
 import '../widgets/annotation_painter.dart';
 
 class PdfOpenPage extends GetView<PdfDetailController> {
@@ -90,8 +90,7 @@ class PdfOpenPage extends GetView<PdfDetailController> {
       body: Column(
         children: [
           // Mode Switcher Header Toolbar
-          if (userRole.canDraw)
-            _buildModeToolbar(context),
+          if (userRole.canDraw) _buildModeToolbar(context),
 
           // PDF Viewer Canvas & Interactive Annotation Layer Stack
           Expanded(
@@ -103,9 +102,9 @@ class PdfOpenPage extends GetView<PdfDetailController> {
                     fallbackPdfUrl,
                     pageLayoutMode: PdfPageLayoutMode.single,
                     controller: controller.pdfViewerController,
+
                     //  canShowScrollHead: true,
                     //  canShowScrollStatus: true,
-                    
                     enableDoubleTapZooming:
                         controller.activeMode.value == AnnotationMode.view,
                     onDocumentLoaded: (PdfDocumentLoadedDetails details) {
