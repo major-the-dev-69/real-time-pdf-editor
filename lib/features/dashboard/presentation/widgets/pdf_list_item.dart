@@ -6,11 +6,7 @@ class PdfListItem extends StatelessWidget {
   final PdfDocumentModel pdf;
   final VoidCallback onTap;
 
-  const PdfListItem({
-    super.key,
-    required this.pdf,
-    required this.onTap,
-  });
+  const PdfListItem({super.key, required this.pdf, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +15,10 @@ class PdfListItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
+        color: theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+          color: theme.colorScheme.outline.withValues(alpha: 0.15),
         ),
         boxShadow: [
           BoxShadow(
@@ -38,19 +34,19 @@ class PdfListItem extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // PDF Icon Container
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   AppAssets.icPdf,
                   color: theme.colorScheme.primary,
-                  size: 28,
+                  size: 26,
                 ),
               ),
               const SizedBox(width: 14),
@@ -76,59 +72,65 @@ class PdfListItem extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 4,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                AppAssets.icProjectBuilding,
-                                size: 10,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                pdf.projectName,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                AppAssets.icSiteMap,
-                                size: 10,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                pdf.siteName,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontSize: 10,
+                        if (pdf.projectName.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  AppAssets.icProjectBuilding,
+                                  size: 10,
                                   color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  pdf.projectName,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        if (pdf.siteName.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  AppAssets.icSiteMap,
+                                  size: 10,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  pdf.siteName,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontSize: 10,
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
 
@@ -138,11 +140,12 @@ class PdfListItem extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          '${pdf.updatedAt} • ${pdf.fileSize}',
+                          '${pdf.relativeDate} • ${pdf.fileSize}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 11,
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.6),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                         ),
                         const Spacer(),
@@ -187,8 +190,8 @@ class PdfListItem extends StatelessWidget {
               // View / Details Action Chevron
               const SizedBox(width: 8),
               Icon(
-                AppAssets.icArrowRight,
-                size: 18,
+                Icons.chevron_right_rounded,
+                size: 20,
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ],

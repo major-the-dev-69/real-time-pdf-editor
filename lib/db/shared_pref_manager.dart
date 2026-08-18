@@ -70,6 +70,5 @@ class SharedPrefManager {
     return UserRoleExtension.fromString(userRole);
   }
 
-  bool get isCustomer => userRole == "3" || userToken.trim().toUpperCase().startsWith('AMC');
   bool get isLoggedIn => userToken.trim().isNotEmpty;
 }

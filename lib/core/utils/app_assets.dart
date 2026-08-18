@@ -78,6 +78,7 @@ class AppAssets {
   static const IconData icSearch = Iconsax.search_normal_1_copy;
   static const IconData icFilterTag = Iconsax.setting_4_copy;
   static const IconData icTickCircle = Iconsax.tick_circle_copy;
+  static const IconData icEditPen = Iconsax.edit_2_copy;
 
   /// Animations
   static const String _animPrefix = 'assets/anim';

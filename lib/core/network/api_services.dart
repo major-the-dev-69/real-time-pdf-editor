@@ -75,6 +75,31 @@ class ApiServices extends GetxService {
     return headers;
   }
 
+  ResponseModel _handleException(
+    dynamic e,
+    String method,
+    String urlOrEndpoint,
+    StackTrace stk,
+  ) {
+    logApiError("Exception in $method $urlOrEndpoint → $e \n$stk");
+    String message =
+        "Unable to connect to server. Please check your network connection.";
+    if (e is DioException) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException) {
+        message =
+            "Failed host lookup or no internet connection. Please check your network settings.";
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        message = "Connection timed out. Please try again.";
+      } else if (e.response?.data != null && e.response?.data is Map) {
+        message = e.response?.data['message']?.toString() ?? message;
+      }
+    }
+    return ResponseModel(false, message, null);
+  }
+
   /// 📡 Generic GET API Call
   Future<ResponseModel> callGetApi(
     String urlOrEndpoint, {
@@ -99,12 +124,7 @@ class ApiServices extends GetxService {
 
       return checkResponseModel(response);
     } catch (e, stk) {
-      logApiError("Exception in GET $urlOrEndpoint → $e \n$stk");
-      return ResponseModel(
-        false,
-        "Unable to connect to server. Please check your network connection.",
-        null,
-      );
+      return _handleException(e, "GET", urlOrEndpoint, stk);
     }
   }
 
@@ -147,12 +167,7 @@ class ApiServices extends GetxService {
 
       return checkResponseModel(response);
     } catch (e, stk) {
-      logApiError("Exception in POST $urlOrEndpoint → $e \n$stk");
-      return ResponseModel(
-        false,
-        "Unable to connect to server. Please check your network connection.",
-        null,
-      );
+      return _handleException(e, "POST", urlOrEndpoint, stk);
     }
   }
 
@@ -181,12 +196,7 @@ class ApiServices extends GetxService {
 
       return checkResponseModel(response);
     } catch (e, stk) {
-      logApiError("Exception in PUT $urlOrEndpoint → $e \n$stk");
-      return ResponseModel(
-        false,
-        "Unable to connect to server. Please check your network connection.",
-        null,
-      );
+      return _handleException(e, "PUT", urlOrEndpoint, stk);
     }
   }
 
@@ -215,12 +225,7 @@ class ApiServices extends GetxService {
 
       return checkResponseModel(response);
     } catch (e, stk) {
-      logApiError("Exception in DELETE $urlOrEndpoint → $e \n$stk");
-      return ResponseModel(
-        false,
-        "Unable to connect to server. Please check your network connection.",
-        null,
-      );
+      return _handleException(e, "DELETE", urlOrEndpoint, stk);
     }
   }
 

@@ -35,7 +35,7 @@ class LoginController extends GetxController {
     isLoading.value = true;
 
     final req = {
-      'email': usernameController.text.trim(),
+      'username': usernameController.text.trim(),
       'password': passwordController.text.trim(),
     };
 
@@ -55,7 +55,7 @@ class LoginController extends GetxController {
           await SharedPrefManager().saveRole(data['user']['role'].toString());
         }
       }
-      
+
       Get.offAllNamed(AppRoutes.dashboard);
     } else {
       CustomSnackBar.showError(message: response.message);

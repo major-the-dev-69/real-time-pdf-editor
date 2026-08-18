@@ -12,6 +12,7 @@ class PdfDetailPage extends GetView<PdfDetailController> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final userRole = SharedPrefManager().userRoleEnum;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -24,6 +25,54 @@ class PdfDetailPage extends GetView<PdfDetailController> {
           onPressed: () => Get.back(),
         ),
         actions: [
+          if (userRole.canUploadPdf)
+            IconButton(
+              icon: const Icon(AppAssets.icEditPen),
+              tooltip: 'Edit PDF',
+              onPressed: () async {
+                final pdf = controller.pdfDocument.value;
+                if (pdf != null) {
+                  final result = await Get.toNamed(
+                    AppRoutes.editPdf,
+                    arguments: {'pdf': pdf},
+                  );
+                  if (result == true) {
+                    controller.fetchPdfDetails(pdf.id);
+                  }
+                }
+              },
+            ),
+          if (userRole.canDeleteProject)
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded),
+              color: theme.colorScheme.error,
+              tooltip: 'Delete PDF',
+              onPressed: () {
+                final pdf = controller.pdfDocument.value;
+                if (pdf != null) {
+                  Get.dialog(
+                    AlertDialog(
+                      title: const Text('Delete PDF'),
+                      content: Text('Are you sure you want to delete "${pdf.title}"?'),
+                      actions: [
+                        TextButton(onPressed: Get.back, child: const Text('Cancel')),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.colorScheme.error,
+                            foregroundColor: theme.colorScheme.onError,
+                          ),
+                          onPressed: () {
+                            Get.back();
+                            controller.deletePdf(pdf.id);
+                          },
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
           IconButton(
             icon: const Icon(AppAssets.icSharePdf),
             onPressed: controller.sharePdf,
@@ -159,7 +208,7 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                       context,
                       icon: AppAssets.icCalendar,
                       label: 'Last Updated',
-                      value: pdf.updatedAt,
+                      value: pdf.formattedDate,
                     ),
                     const Divider(height: 20),
                     _buildInfoRow(

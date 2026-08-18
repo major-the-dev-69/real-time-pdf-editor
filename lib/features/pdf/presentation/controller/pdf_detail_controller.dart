@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
+import '../../../../core/helper/logger_helper.dart';
+import '../../../../core/network/api_services.dart';
+import '../../../../widgets/custom_snack_bar.dart';
 import '../../model/pdf_document_model.dart';
 import '../widgets/annotation_painter.dart';
 
@@ -10,6 +13,7 @@ enum AnnotationMode { view, draw, text, erase }
 class PdfDetailController extends GetxController {
   final pdfDocument = Rxn<PdfDocumentModel>();
   final isDownloading = false.obs;
+  final isFetchingDetails = false.obs;
   final downloadProgress = 0.0.obs;
 
   // Syncfusion PDF Controller
@@ -45,14 +49,89 @@ class PdfDetailController extends GetxController {
   final currentLine = Rxn<DrawnLine>();
   final textAnnotations = <TextAnnotation>[].obs;
 
+  static const String fallbackPdfUrl =
+      'https://cdn.syncfusion.com/content/PDFViewer/flutter-succinctly.pdf';
+
+  final effectivePdfUrl = ''.obs;
+
   @override
   void onInit() {
     super.onInit();
     pdfViewerController = PdfViewerController();
 
+    ever(pdfDocument, (_) {
+      updatePdfUrlFromModel();
+    });
+
     final args = Get.arguments;
     if (args is PdfDocumentModel) {
       pdfDocument.value = args;
+      fetchPdfDetails(args.id);
+    } else if (args is String && args.isNotEmpty) {
+      fetchPdfDetails(args);
+    } else if (args is Map<String, dynamic>) {
+      final uuid = args['uuid']?.toString() ?? args['id']?.toString() ?? '';
+      if (uuid.isNotEmpty) {
+        fetchPdfDetails(uuid);
+      }
+    }
+    updatePdfUrlFromModel();
+  }
+
+  void updatePdfUrlFromModel() {
+    final modelUrl = pdfDocument.value?.pdfUrl.trim() ?? '';
+    if (modelUrl.isNotEmpty &&
+        (modelUrl.startsWith('http://') || modelUrl.startsWith('https://'))) {
+      effectivePdfUrl.value = modelUrl;
+    } else {
+      effectivePdfUrl.value = fallbackPdfUrl;
+    }
+  }
+
+  void switchToFallbackPdfUrl() {
+    if (effectivePdfUrl.value != fallbackPdfUrl) {
+      printMessage("⚠️ Primary PDF URL failed. Switching to fallback URL: $fallbackPdfUrl");
+      effectivePdfUrl.value = fallbackPdfUrl;
+    }
+  }
+
+  Future<void> fetchPdfDetails(String pdfUuid) async {
+    if (pdfUuid.isEmpty) return;
+    isFetchingDetails.value = true;
+
+    try {
+      final endpoint = 'pdfs/$pdfUuid';
+      final response = await Get.find<ApiServices>().callGetApi(
+        endpoint,
+        isUserRequired: true,
+      );
+
+      if (response.status && response.data != null) {
+        pdfDocument.value = PdfDocumentModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+    } catch (e) {
+      printMessage("⚠️ Error fetching PDF details: $e");
+    } finally {
+      isFetchingDetails.value = false;
+    }
+  }
+
+  Future<void> deletePdf(String pdfUuid) async {
+    if (pdfUuid.isEmpty) return;
+
+    final endpoint = 'pdfs/$pdfUuid';
+    final response = await Get.find<ApiServices>().callDeleteApi(
+      endpoint,
+      isUserRequired: true,
+    );
+
+    if (response.status) {
+      Get.back(result: true);
+      CustomSnackBar.showSuccess(message: response.message);
+    } else {
+      CustomSnackBar.showError(message: response.message);
     }
   }
 

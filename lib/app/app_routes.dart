@@ -15,9 +15,16 @@ import '../features/notification/presentation/page/notification_page.dart';
 
 import '../features/pdf/binding/pdf_binding.dart';
 import '../features/pdf/presentation/page/pdf_detail_page.dart';
+import '../features/pdf/presentation/page/pdf_form_page.dart';
 import '../features/pdf/presentation/page/pdf_open_page.dart';
 import '../features/profile/binding/profile_binding.dart';
 import '../features/profile/presentation/page/profile_page.dart';
+import '../features/project/binding/project_binding.dart';
+import '../features/project/presentation/page/my_project_list_page.dart';
+import '../features/project/presentation/page/project_form_page.dart';
+import '../features/site/binding/site_binding.dart';
+import '../features/site/presentation/page/site_form_page.dart';
+import '../features/site/presentation/page/site_list_page.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -28,6 +35,14 @@ class AppRoutes {
   static const resetPassword = '/reset-password';
   static const dashboard = '/dashboard';
   static const profile = '/profile';
+  static const addProject = '/add-project';
+  static const editProject = '/edit-project';
+  static const myProjectList = '/my-project-list';
+  static const siteList = '/site-list';
+  static const addSite = '/add-site';
+  static const editSite = '/edit-site';
+  static const addPdf = '/add-pdf';
+  static const editPdf = '/edit-pdf';
   static const incomes = '/incomes';
   static const business = '/business';
   static const team = '/team';
@@ -87,6 +102,62 @@ class AppPages {
       name: AppRoutes.profile,
       page: () => const ProfilePage(),
       binding: ProfileBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.addProject,
+      page: () => const ProjectFormPage(),
+      binding: ProjectBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.editProject,
+      page: () => const ProjectFormPage(),
+      binding: ProjectBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.myProjectList,
+      page: () => const MyProjectListPage(),
+      binding: ProjectBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.siteList,
+      page: () => const SiteListPage(),
+      binding: SiteBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.addSite,
+      page: () => const SiteFormPage(),
+      binding: SiteBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.editSite,
+      page: () => const SiteFormPage(),
+      binding: SiteBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.addPdf,
+      page: () => const PdfFormPage(),
+      binding: PdfBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.editPdf,
+      page: () => const PdfFormPage(),
+      binding: PdfBinding(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),
     ),

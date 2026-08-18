@@ -6,6 +6,8 @@ class ApiConstants {
   static const login = "auth/login";
   static const profile = "auth/profile";
   static const logout = "auth/logout";
+  static const projects = "projects";
+  static const sites = "sites";
 
   static const xApiKey = "x-api-key";
   static const xApiValue = "OPT-pCMr6da5EC2mC6p1OA8aW3znkrF2T3cg";

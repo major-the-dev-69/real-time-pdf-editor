@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sai_associates/core/utils/app_assets.dart';
 import '../../../../widgets/custom_buttons.dart';
 import '../../controller/profile_controller.dart';
 
@@ -16,6 +17,10 @@ class ProfilePage extends GetView<ProfileController> {
         title: const Text('My Profile'),
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          onPressed: Get.back,
+          icon: const Icon(AppAssets.backArrow),
+        ),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {

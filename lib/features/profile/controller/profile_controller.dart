@@ -45,8 +45,6 @@ class ProfileController extends GetxController {
       isUserRequired: true,
     );
     isLoggingOut.value = false;
-
-    // Regardless of API success, log user out locally
     await SharedPrefManager().userLogOut();
     Get.offAllNamed(AppRoutes.login);
 

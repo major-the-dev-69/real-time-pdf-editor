@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../core/enums/user_role.dart';
 import '../../../../core/utils/app_assets.dart';
+import '../../../../db/shared_pref_manager.dart';
 import '../controller/dashboard_controller.dart';
 import '../widgets/pdf_list_item.dart';
 import '../widgets/project_card.dart';
@@ -13,6 +15,7 @@ class DashboardPage extends GetView<DashboardController> {
   @override
   Widget build(BuildContext context) {
     final theme = context.theme;
+    final userRole = SharedPrefManager().userRoleEnum;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -33,10 +36,10 @@ class DashboardPage extends GetView<DashboardController> {
                 elevation: 2,
                 shadowColor: theme.shadowColor.withValues(alpha: 0.1),
                 backgroundColor: theme.scaffoldBackgroundColor,
-                expandedHeight: 140.0,
+                expandedHeight: 125.0,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -66,11 +69,14 @@ class DashboardPage extends GetView<DashboardController> {
                               children: [
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.surfaceContainerHigh,
+                                    color:
+                                        theme.colorScheme.surfaceContainerHigh,
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
-                                    icon: const Icon(Icons.person_outline_rounded),
+                                    icon: const Icon(
+                                      Icons.person_outline_rounded,
+                                    ),
                                     onPressed: () {
                                       Get.toNamed(AppRoutes.profile);
                                     },
@@ -80,7 +86,8 @@ class DashboardPage extends GetView<DashboardController> {
                                 const SizedBox(width: 8),
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.surfaceContainerHigh,
+                                    color:
+                                        theme.colorScheme.surfaceContainerHigh,
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
@@ -104,7 +111,7 @@ class DashboardPage extends GetView<DashboardController> {
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(60),
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                     color: theme.scaffoldBackgroundColor,
                     child: TextField(
                       onChanged: controller.updateSearchQuery,
@@ -145,32 +152,40 @@ class DashboardPage extends GetView<DashboardController> {
               // Real Estate Projects Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Text(
+                        'Real Estate Projects',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       Row(
                         children: [
-                          Icon(
-                            AppAssets.icProjectBuilding,
-                            size: 22,
-                            color: theme.colorScheme.primary,
+                          TextButton(
+                            onPressed: () {
+                              Get.toNamed(AppRoutes.myProjectList);
+                            },
+                            child: const Text('View All'),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Real Estate Projects',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                          if (userRole.canCreateProject) ...[
+                            const SizedBox(width: 4),
+                            IconButton(
+                              onPressed: () {
+                                Get.toNamed(AppRoutes.addProject);
+                              },
+                              icon: Icon(
+                                Icons.add_circle_outline_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 24,
+                              ),
+                              tooltip: 'Add Project',
                             ),
-                          ),
+                          ],
                         ],
                       ),
-                      if (selectedProjId != 'all' || selectedSiteId != 'all')
-                        TextButton.icon(
-                          onPressed: controller.clearFilters,
-                          icon: const Icon(AppAssets.icCloseCircle, size: 16),
-                          label: const Text('Clear Filters'),
-                        ),
                     ],
                   ),
                 ),
@@ -179,12 +194,58 @@ class DashboardPage extends GetView<DashboardController> {
               // Horizontal Real Estate Project Cards Carousel
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 180,
+                  height: 175,
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     scrollDirection: Axis.horizontal,
-                    itemCount: projects.length,
+                    itemCount: projects.length + 1,
                     itemBuilder: (context, index) {
+                      if (index == projects.length) {
+                        return GestureDetector(
+                          onTap: () {
+                            Get.toNamed(AppRoutes.myProjectList);
+                          },
+                          child: Container(
+                            width: 140,
+                            margin: const EdgeInsets.only(right: 20),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: theme.colorScheme.outline.withValues(
+                                  alpha: 0.2,
+                                ),
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'View All',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
                       final project = projects[index];
                       return ProjectCard(
                         project: project,
@@ -192,6 +253,14 @@ class DashboardPage extends GetView<DashboardController> {
                         onTap: () => controller.selectProject(
                           selectedProjId == project.id ? 'all' : project.id,
                         ),
+                        onEdit: userRole.canEditProject
+                            ? () {
+                                Get.toNamed(
+                                  AppRoutes.editProject,
+                                  arguments: project.toJson(),
+                                );
+                              }
+                            : null,
                       );
                     },
                   ),
@@ -201,15 +270,9 @@ class DashboardPage extends GetView<DashboardController> {
               // Filter by Sites Chips Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
                   child: Row(
                     children: [
-                      Icon(
-                        AppAssets.icSiteMap,
-                        size: 20,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
                       Text(
                         'Filter by Site Name',
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -220,7 +283,7 @@ class DashboardPage extends GetView<DashboardController> {
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
-                          vertical: 2,
+                          vertical: 3,
                         ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primaryContainer,
@@ -234,6 +297,17 @@ class DashboardPage extends GetView<DashboardController> {
                           ),
                         ),
                       ),
+                      const Spacer(),
+                      if (selectedProjId != 'all')
+                        TextButton(
+                          onPressed: () {
+                            Get.toNamed(
+                              AppRoutes.siteList,
+                              arguments: {'projectId': selectedProjId},
+                            );
+                          },
+                          child: const Text('Manage Sites'),
+                        ),
                     ],
                   ),
                 ),
@@ -249,12 +323,26 @@ class DashboardPage extends GetView<DashboardController> {
                       FilterChip(
                         selected: selectedSiteId == 'all',
                         label: const Text('All Sites'),
-                        avatar: const Icon(AppAssets.icSiteMap, size: 16),
                         onSelected: (selected) => controller.selectSite('all'),
+                        backgroundColor: theme.colorScheme.surfaceContainerHigh,
                         selectedColor: theme.colorScheme.primaryContainer,
                         checkmarkColor: theme.colorScheme.primary,
+                        labelStyle: TextStyle(
+                          color: selectedSiteId == 'all'
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface,
+                          fontWeight: selectedSiteId == 'all'
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          fontSize: 13,
+                        ),
+                        side: BorderSide(
+                          color: theme.colorScheme.outline.withValues(
+                            alpha: 0.15,
+                          ),
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -268,10 +356,26 @@ class DashboardPage extends GetView<DashboardController> {
                             onSelected: (selected) => controller.selectSite(
                               isSelected ? 'all' : site.id,
                             ),
+                            backgroundColor:
+                                theme.colorScheme.surfaceContainerHigh,
                             selectedColor: theme.colorScheme.primaryContainer,
                             checkmarkColor: theme.colorScheme.primary,
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.onSurface,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              fontSize: 13,
+                            ),
+                            side: BorderSide(
+                              color: theme.colorScheme.outline.withValues(
+                                alpha: 0.15,
+                              ),
+                            ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                         );
@@ -284,34 +388,59 @@ class DashboardPage extends GetView<DashboardController> {
               // Site PDFs Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            AppAssets.icPdf,
-                            size: 20,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Site Documents & PDFs',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
                       Text(
-                        '${filteredPdfs.length} Documents',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
+                        'Site Documents & PDFs',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${filteredPdfs.length} Docs',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
+                      const Spacer(),
+                      if (userRole.canUploadPdf)
+                        IconButton(
+                          onPressed: () async {
+                            final result = await Get.toNamed(
+                              AppRoutes.addPdf,
+                              arguments: {
+                                'siteId': selectedSiteId != 'all'
+                                    ? selectedSiteId
+                                    : '',
+                                'projectId': selectedProjId != 'all'
+                                    ? selectedProjId
+                                    : '',
+                              },
+                            );
+                            if (result == true && selectedSiteId != 'all') {
+                              controller.fetchPdfsForSite(selectedSiteId);
+                            }
+                          },
+                          icon: Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                          tooltip: 'Upload PDF',
+                        ),
                     ],
                   ),
                 ),

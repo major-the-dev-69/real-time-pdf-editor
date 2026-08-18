@@ -5,13 +5,19 @@ import '../../model/real_estate_project_model.dart';
 class ProjectCard extends StatelessWidget {
   final RealEstateProject project;
   final bool isSelected;
+  final bool isVertical;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const ProjectCard({
     super.key,
     required this.project,
     this.isSelected = false,
+    this.isVertical = false,
     required this.onTap,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -22,8 +28,12 @@ class ProjectCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        width: 250,
-        margin: const EdgeInsets.only(right: 14),
+        width: isVertical ? double.infinity : 250,
+        height: isVertical ? 180 : null,
+        margin: EdgeInsets.only(
+          right: isVertical ? 0 : 14,
+          bottom: isVertical ? 14 : 0,
+        ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -48,14 +58,34 @@ class ProjectCard extends StatelessWidget {
             children: [
               // Background Image
               Positioned.fill(
-                child: Image.network(
-                  project.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: const Icon(AppAssets.icProjectBuilding, size: 40),
-                  ),
-                ),
+                child: project.imageUrl.isNotEmpty
+                    ? Image.network(
+                        project.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          child: const Icon(AppAssets.icProjectBuilding, size: 40),
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              theme.colorScheme.primaryContainer,
+                              theme.colorScheme.surfaceContainerHighest,
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            AppAssets.icProjectBuilding,
+                            size: 48,
+                            color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
               ),
 
               // Gradient Overlay
@@ -110,24 +140,73 @@ class ProjectCard extends StatelessWidget {
                 ),
               ),
 
-              // Selection Check Indicator Top Right
-              if (isSelected)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      AppAssets.icTickCircle,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ),
+              // Selection Check Indicator, Edit & Delete Buttons Top Right
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (onEdit != null)
+                      GestureDetector(
+                        onTap: () {
+                          onEdit?.call();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: const Icon(
+                            AppAssets.icEditPen,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    if (onDelete != null)
+                      GestureDetector(
+                        onTap: () {
+                          onDelete?.call();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          margin: const EdgeInsets.only(right: 6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.error.withValues(alpha: 0.8),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    if (isSelected)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          AppAssets.icTickCircle,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                  ],
                 ),
+              ),
 
               // Bottom Content Info
               Positioned(

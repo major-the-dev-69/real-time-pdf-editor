@@ -37,6 +37,16 @@ extension UserRoleExtension on UserRole {
       this == UserRole.superAdmin || this == UserRole.admin;
   bool get canDeleteProject => this == UserRole.superAdmin;
 
+  bool get canViewSites =>
+      this == UserRole.superAdmin ||
+      this == UserRole.admin ||
+      this == UserRole.viewer;
+  bool get canCreateSite =>
+      this == UserRole.superAdmin || this == UserRole.admin;
+  bool get canEditSite =>
+      this == UserRole.superAdmin || this == UserRole.admin;
+  bool get canDeleteSite => this == UserRole.superAdmin;
+
   bool get canUploadPdf =>
       this == UserRole.superAdmin || this == UserRole.admin;
   bool get canViewPdf =>

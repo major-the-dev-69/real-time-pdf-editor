@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 
 import '../../../../app/app_routes.dart';
+import '../../../../db/shared_pref_manager.dart';
 
 class SplashController extends GetxController {
   final opacity = 0.0.obs;
@@ -20,17 +21,12 @@ class SplashController extends GetxController {
     });
 
     Timer(const Duration(seconds: 3), () {
-      // final isLoggedIn = SharedPrefManager().isLoggedIn;
-      // if (isLoggedIn) {
-      //   if (SharedPrefManager().isCustomer) {
-      //     Get.offAllNamed(AppRoutes.customerDashboard);
-      //   } else {
-      //     Get.offAllNamed(AppRoutes.dashboard);
-      //   }
-      // } else {
-      //   Get.offAllNamed(AppRoutes.login);
-      // }
-      Get.offAllNamed(AppRoutes.login);
+      final isLoggedIn = SharedPrefManager().isLoggedIn;
+      if (isLoggedIn) {
+        Get.offAllNamed(AppRoutes.dashboard);
+      } else {
+        Get.offAllNamed(AppRoutes.login);
+      }
     });
   }
 }

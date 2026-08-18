@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sai_associates/features/pdf/presentation/controller/pdf_detail_controller.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+
+import '../../../../core/enums/user_role.dart';
+import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/utils/app_assets.dart';
 import '../../../../db/shared_pref_manager.dart';
-import '../../../../core/enums/user_role.dart';
+import '../../../../widgets/custom_snack_bar.dart';
+import '../controller/pdf_detail_controller.dart';
 import '../widgets/annotation_painter.dart';
 
 class PdfOpenPage extends GetView<PdfDetailController> {
   const PdfOpenPage({super.key});
-
-  // Default sample PDF URL for testing if document URL is remote or placeholder
-  static const String fallbackPdfUrl =
-      'https://cdn.syncfusion.com/content/PDFViewer/flutter-succinctly.pdf';
 
   @override
   Widget build(BuildContext context) {
@@ -98,19 +97,35 @@ class PdfOpenPage extends GetView<PdfDetailController> {
               children: [
                 // Layer 1: Syncfusion PDF Viewer
                 Obx(() {
+                  final pdfUrl = controller.effectivePdfUrl.value;
+                  if (pdfUrl.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
                   return SfPdfViewer.network(
-                    fallbackPdfUrl,
+                    pdfUrl,
                     pageLayoutMode: PdfPageLayoutMode.single,
                     controller: controller.pdfViewerController,
-
-                    //  canShowScrollHead: true,
-                    //  canShowScrollStatus: true,
                     enableDoubleTapZooming:
                         controller.activeMode.value == AnnotationMode.view,
                     onDocumentLoaded: (PdfDocumentLoadedDetails details) {
                       controller.totalPages.value =
                           details.document.pages.count;
                       controller.isLoaded.value = true;
+                    },
+                    onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                      printMessage(
+                        "⚠️ PDF Load Failed ($pdfUrl): ${details.error} - ${details.description}",
+                      );
+                      if (pdfUrl != PdfDetailController.fallbackPdfUrl) {
+                        controller.switchToFallbackPdfUrl();
+                      } else {
+                        CustomSnackBar.showError(
+                          title: 'Document Load Error',
+                          message:
+                              'Unable to load PDF document: ${details.description}',
+                        );
+                      }
                     },
                     onPageChanged: (PdfPageChangedDetails details) {
                       controller.currentPage.value = details.newPageNumber;
