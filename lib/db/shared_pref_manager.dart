@@ -1,4 +1,5 @@
 import 'package:encrypt_shared_preferences/provider.dart';
+import '../core/enums/user_role.dart';
 
 const blockSplashNavigation = "blockSplashNavigation";
 
@@ -64,6 +65,10 @@ class SharedPrefManager {
 
   String get userToken => _prefs.getString(_keyToken) ?? "";
   String get userRole => _prefs.getString(_keyRole) ?? "";
+
+  UserRole get userRoleEnum {
+    return UserRoleExtension.fromString(userRole);
+  }
 
   bool get isCustomer => userRole == "3" || userToken.trim().toUpperCase().startsWith('AMC');
   bool get isLoggedIn => userToken.trim().isNotEmpty;

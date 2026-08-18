@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../../core/utils/app_assets.dart';
+import '../../../../db/shared_pref_manager.dart';
+import '../../../../core/enums/user_role.dart';
 import '../controller/pdf_detail_controller.dart';
 import '../widgets/annotation_painter.dart';
 
@@ -15,6 +17,7 @@ class PdfOpenPage extends GetView<PdfDetailController> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final userRole = SharedPrefManager().userRoleEnum;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -54,38 +57,41 @@ class PdfOpenPage extends GetView<PdfDetailController> {
           const SizedBox(width: 8),
 
           // Action: Undo
-          IconButton(
-            icon: const Icon(Icons.undo_rounded),
-            tooltip: 'Undo',
-            onPressed: controller.undo,
-          ),
+          if (userRole.canUndo)
+            IconButton(
+              icon: const Icon(Icons.undo_rounded),
+              tooltip: 'Undo',
+              onPressed: controller.undo,
+            ),
 
           // Action: Clear All
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded),
-            tooltip: 'Clear Annotations',
-            onPressed: () {
-              Get.defaultDialog(
-                title: 'Clear Annotations',
-                middleText:
-                    'Are you sure you want to clear all drawing and text annotations?',
-                textConfirm: 'Clear All',
-                textCancel: 'Cancel',
-                confirmTextColor: Colors.white,
-                buttonColor: Colors.red,
-                onConfirm: () {
-                  controller.clearAllAnnotations();
-                  Get.back();
-                },
-              );
-            },
-          ),
+          if (userRole.canClearAll)
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded),
+              tooltip: 'Clear Annotations',
+              onPressed: () {
+                Get.defaultDialog(
+                  title: 'Clear Annotations',
+                  middleText:
+                      'Are you sure you want to clear all drawing and text annotations?',
+                  textConfirm: 'Clear All',
+                  textCancel: 'Cancel',
+                  confirmTextColor: Colors.white,
+                  buttonColor: Colors.red,
+                  onConfirm: () {
+                    controller.clearAllAnnotations();
+                    Get.back();
+                  },
+                );
+              },
+            ),
         ],
       ),
       body: Column(
         children: [
           // Mode Switcher Header Toolbar
-          _buildModeToolbar(context),
+          if (userRole.canDraw)
+            _buildModeToolbar(context),
 
           // PDF Viewer Canvas & Interactive Annotation Layer Stack
           Expanded(
@@ -208,12 +214,13 @@ class PdfOpenPage extends GetView<PdfDetailController> {
           ),
 
           // Bottom Tool Control Panel (Color Palette & Stroke Slider)
-          Obx(() {
-            if (controller.activeMode.value == AnnotationMode.view) {
-              return const SizedBox.shrink();
-            }
-            return _buildBottomControlPanel(context);
-          }),
+          if (userRole.canDraw)
+            Obx(() {
+              if (controller.activeMode.value == AnnotationMode.view) {
+                return const SizedBox.shrink();
+              }
+              return _buildBottomControlPanel(context);
+            }),
         ],
       ),
     );

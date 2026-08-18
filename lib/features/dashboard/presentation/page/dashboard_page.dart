@@ -62,18 +62,36 @@ class DashboardPage extends GetView<DashboardController> {
                                 ),
                               ],
                             ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHigh,
-                                shape: BoxShape.circle,
-                              ),
-                              child: IconButton(
-                                icon: const Icon(AppAssets.icNotification),
-                                onPressed: () {
-                                  Get.toNamed(AppRoutes.notifications);
-                                },
-                                color: theme.colorScheme.onSurface,
-                              ),
+                            Row(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surfaceContainerHigh,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.person_outline_rounded),
+                                    onPressed: () {
+                                      Get.toNamed(AppRoutes.profile);
+                                    },
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surfaceContainerHigh,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(AppAssets.icNotification),
+                                    onPressed: () {
+                                      Get.toNamed(AppRoutes.notifications);
+                                    },
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

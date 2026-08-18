@@ -18,10 +18,8 @@ class ResetPasswordPage extends GetView<ForgotPasswordController> {
     final primaryColor = colorScheme.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFC),
       body: Stack(
         children: [
-          // Top-Left Curved Orange Shape Accent
           Positioned(
             top: 0,
             left: 0,

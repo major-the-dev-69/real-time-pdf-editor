@@ -16,6 +16,8 @@ import '../features/notification/presentation/page/notification_page.dart';
 import '../features/pdf/binding/pdf_binding.dart';
 import '../features/pdf/presentation/page/pdf_detail_page.dart';
 import '../features/pdf/presentation/page/pdf_open_page.dart';
+import '../features/profile/binding/profile_binding.dart';
+import '../features/profile/presentation/page/profile_page.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -81,7 +83,13 @@ class AppPages {
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),
     ),
-
+    GetPage(
+      name: AppRoutes.profile,
+      page: () => const ProfilePage(),
+      binding: ProfileBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
     GetPage(
       name: AppRoutes.notifications,
       page: () => const NotificationPage(),

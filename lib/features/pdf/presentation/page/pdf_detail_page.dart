@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../app/app_routes.dart';
 import '../../../../core/utils/app_assets.dart';
+import '../../../../db/shared_pref_manager.dart';
+import '../../../../core/enums/user_role.dart';
 import '../controller/pdf_detail_controller.dart';
 
 class PdfDetailPage extends GetView<PdfDetailController> {
@@ -207,9 +209,11 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                     Get.toNamed(AppRoutes.pdfOpen, arguments: pdf);
                   },
                   icon: const Icon(AppAssets.icEyeView, size: 22),
-                  label: const Text(
-                    'Open & Edit PDF Document',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    SharedPrefManager().userRoleEnum.canDraw
+                        ? 'Open & Edit PDF Document'
+                        : 'Open & View PDF Document',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,

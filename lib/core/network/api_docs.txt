@@ -1,0 +1,55 @@
+Real-Time PDF Editor API Documentation
+Base URL: https://pbd.nivrajsoftware.in/api/v1
+Authentication
+POST /auth/login
+Headers after login:
+Authorization: Bearer <token>
+Accept: application/json
+Projects
+GET /projects
+POST /projects
+GET /projects/{projectUuid}
+PUT /projects/{projectUuid}
+DELETE /projects/{projectUuid}
+Sites
+GET /projects/{projectUuid}/sites
+POST /projects/{projectUuid}/sites
+GET /sites/{siteUuid}
+PUT /sites/{siteUuid}
+DELETE /sites/{siteUuid}
+PDFs
+POST /sites/{siteUuid}/pdfs (multipart/form-data)
+GET /sites/{siteUuid}/pdfs
+GET /pdfs/{pdfUuid}
+PUT /pdfs/{pdfUuid}
+DELETE /pdfs/{pdfUuid}
+Annotations
+POST /pdfs/{pdfUuid}/annotations
+GET /pdfs/{pdfUuid}/annotations
+PUT /annotations/{annotationUuid}
+DELETE /annotations/{annotationUuid}
+POST /annotations/{annotationUuid}/undo
+POST /annotations/{annotationUuid}/redo
+POST /pdfs/{pdfUuid}/clear-page
+POST /pdfs/{pdfUuid}/clear-all
+Realtime (Pusher)
+Share with Flutter developer:
+- PUSHER_APP_KEY
+- PUSHER_APP_CLUSTER
+
+Events:
+AnnotationCreated
+AnnotationUpdated
+AnnotationDeleted
+AnnotationUndo
+AnnotationRedo
+PageCleared
+AllCleared
+
+Do NOT share App Secret.
+Response Format
+Success:
+{"status":true,"message":"Success","data":{...}}
+
+Error:
+{"status":false,"message":"Error"}
