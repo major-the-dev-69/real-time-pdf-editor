@@ -152,7 +152,7 @@ class DashboardPage extends GetView<DashboardController> {
               // Real Estate Projects Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 4, 4),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -164,24 +164,59 @@ class DashboardPage extends GetView<DashboardController> {
                       ),
                       Row(
                         children: [
-                          TextButton(
-                            onPressed: () {
-                              Get.toNamed(AppRoutes.myProjectList);
-                            },
-                            child: const Text('View All'),
+                          Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () {
+                                Get.toNamed(AppRoutes.myProjectList);
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              splashColor: theme.colorScheme.primary.withValues(
+                                alpha: 0.15,
+                              ),
+                              highlightColor: theme.colorScheme.primary
+                                  .withValues(alpha: 0.08),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                child: Text(
+                                  'View All',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                           if (userRole.canCreateProject) ...[
                             const SizedBox(width: 4),
-                            IconButton(
-                              onPressed: () {
-                                Get.toNamed(AppRoutes.addProject);
-                              },
-                              icon: Icon(
-                                Icons.add_circle_outline_rounded,
-                                color: theme.colorScheme.primary,
-                                size: 24,
+                            Material(
+                              color: Colors.transparent,
+                              shape: const CircleBorder(),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () {
+                                  Get.toNamed(AppRoutes.addProject);
+                                },
+                                customBorder: const CircleBorder(),
+                                splashColor: theme.colorScheme.primary
+                                    .withValues(alpha: 0.15),
+                                highlightColor: theme.colorScheme.primary
+                                    .withValues(alpha: 0.08),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Icon(
+                                    Icons.add_circle_outline_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 24,
+                                  ),
+                                ),
                               ),
-                              tooltip: 'Add Project',
                             ),
                           ],
                         ],
@@ -270,7 +305,7 @@ class DashboardPage extends GetView<DashboardController> {
               // Filter by Sites Chips Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 8, 6),
                   child: Row(
                     children: [
                       Text(
@@ -299,14 +334,37 @@ class DashboardPage extends GetView<DashboardController> {
                       ),
                       const Spacer(),
                       if (selectedProjId != 'all')
-                        TextButton(
-                          onPressed: () {
-                            Get.toNamed(
-                              AppRoutes.siteList,
-                              arguments: {'projectId': selectedProjId},
-                            );
-                          },
-                          child: const Text('Manage Sites'),
+                        Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () {
+                              Get.toNamed(
+                                AppRoutes.siteList,
+                                arguments: {'projectId': selectedProjId},
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            splashColor: theme.colorScheme.primary.withValues(
+                              alpha: 0.15,
+                            ),
+                            highlightColor: theme.colorScheme.primary
+                                .withValues(alpha: 0.08),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              child: Text(
+                                'Manage Sites',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -388,7 +446,7 @@ class DashboardPage extends GetView<DashboardController> {
               // Site PDFs Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 8, 6),
                   child: Row(
                     children: [
                       Text(
@@ -417,29 +475,42 @@ class DashboardPage extends GetView<DashboardController> {
                       ),
                       const Spacer(),
                       if (userRole.canUploadPdf)
-                        IconButton(
-                          onPressed: () async {
-                            final result = await Get.toNamed(
-                              AppRoutes.addPdf,
-                              arguments: {
-                                'siteId': selectedSiteId != 'all'
-                                    ? selectedSiteId
-                                    : '',
-                                'projectId': selectedProjId != 'all'
-                                    ? selectedProjId
-                                    : '',
-                              },
-                            );
-                            if (result == true && selectedSiteId != 'all') {
-                              controller.fetchPdfsForSite(selectedSiteId);
-                            }
-                          },
-                          icon: Icon(
-                            Icons.add_circle_outline_rounded,
-                            color: theme.colorScheme.primary,
-                            size: 24,
+                        Material(
+                          color: Colors.transparent,
+                          shape: const CircleBorder(),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () async {
+                              final result = await Get.toNamed(
+                                AppRoutes.addPdf,
+                                arguments: {
+                                  'siteId': selectedSiteId != 'all'
+                                      ? selectedSiteId
+                                      : '',
+                                  'projectId': selectedProjId != 'all'
+                                      ? selectedProjId
+                                      : '',
+                                },
+                              );
+                              if (result == true && selectedSiteId != 'all') {
+                                controller.fetchPdfsForSite(selectedSiteId);
+                              }
+                            },
+                            customBorder: const CircleBorder(),
+                            splashColor: theme.colorScheme.primary.withValues(
+                              alpha: 0.15,
+                            ),
+                            highlightColor: theme.colorScheme.primary
+                                .withValues(alpha: 0.08),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Icon(
+                                Icons.add_circle_outline_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 24,
+                              ),
+                            ),
                           ),
-                          tooltip: 'Upload PDF',
                         ),
                     ],
                   ),

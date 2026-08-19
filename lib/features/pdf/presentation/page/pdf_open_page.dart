@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../../../../core/enums/user_role.dart';
-import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/utils/app_assets.dart';
 import '../../../../db/shared_pref_manager.dart';
 import '../../../../widgets/custom_snack_bar.dart';
@@ -36,70 +35,144 @@ class PdfOpenPage extends GetView<PdfDetailController> {
           onPressed: () => Get.back(),
         ),
         actions: [
-          // Page Navigation Counter Indicator
-          Obx(
-            () => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${controller.currentPage.value} / ${controller.totalPages.value}',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+          Obx(() {
+            final hasError =
+                controller.isPdfLoadError.value ||
+                controller.effectivePdfUrl.value.isEmpty;
+            if (hasError) return const SizedBox.shrink();
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Page Navigation Counter Indicator
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${controller.currentPage.value} / ${controller.totalPages.value}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
+                const SizedBox(width: 8),
 
-          // Action: Undo
-          if (userRole.canUndo)
-            IconButton(
-              icon: const Icon(Icons.undo_rounded),
-              tooltip: 'Undo',
-              onPressed: controller.undo,
-            ),
+                // Action: Undo
+                if (userRole.canUndo)
+                  IconButton(
+                    icon: const Icon(Icons.undo_rounded),
+                    tooltip: 'Undo',
+                    onPressed: controller.undo,
+                  ),
 
-          // Action: Clear All
-          if (userRole.canClearAll)
-            IconButton(
-              icon: const Icon(Icons.delete_outline_rounded),
-              tooltip: 'Clear Annotations',
-              onPressed: () {
-                Get.defaultDialog(
-                  title: 'Clear Annotations',
-                  middleText:
-                      'Are you sure you want to clear all drawing and text annotations?',
-                  textConfirm: 'Clear All',
-                  textCancel: 'Cancel',
-                  confirmTextColor: Colors.white,
-                  buttonColor: Colors.red,
-                  onConfirm: () {
-                    controller.clearAllAnnotations();
-                    Get.back();
-                  },
-                );
-              },
-            ),
+                // Action: Clear All
+                if (userRole.canClearAll)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    tooltip: 'Clear Annotations',
+                    onPressed: () {
+                      Get.defaultDialog(
+                        title: 'Clear Annotations',
+                        middleText:
+                            'Are you sure you want to clear all drawing and text annotations?',
+                        textConfirm: 'Clear All',
+                        textCancel: 'Cancel',
+                        confirmTextColor: Colors.white,
+                        buttonColor: Colors.red,
+                        onConfirm: () {
+                          controller.clearAllAnnotations();
+                          Get.back();
+                        },
+                      );
+                    },
+                  ),
+              ],
+            );
+          }),
         ],
       ),
       body: Column(
         children: [
           // Mode Switcher Header Toolbar
-          if (userRole.canDraw) _buildModeToolbar(context),
+          Obx(() {
+            final hasError =
+                controller.isPdfLoadError.value ||
+                controller.effectivePdfUrl.value.isEmpty;
+            if (!userRole.canDraw || hasError) {
+              return const SizedBox.shrink();
+            }
+            return _buildModeToolbar(context);
+          }),
 
           // PDF Viewer Canvas & Interactive Annotation Layer Stack
           Expanded(
             child: Stack(
               children: [
-                // Layer 1: Syncfusion PDF Viewer
+                // Layer 1: Syncfusion PDF Viewer or PDF Not Available UI
                 Obx(() {
                   final pdfUrl = controller.effectivePdfUrl.value;
-                  if (pdfUrl.isEmpty) {
+                  final isFetching = controller.isFetchingDetails.value;
+                  final isError = controller.isPdfLoadError.value;
+
+                  if (isFetching && pdfUrl.isEmpty && !isError) {
                     return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (isError || pdfUrl.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.errorContainer
+                                    .withValues(alpha: 0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.picture_as_pdf_rounded,
+                                size: 56,
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'PDF Not Available',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'The requested PDF document could not be loaded or the file URL is invalid.',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: () => Get.back(),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              label: const Text('Go Back'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   }
 
                   return SfPdfViewer.network(
@@ -114,18 +187,12 @@ class PdfOpenPage extends GetView<PdfDetailController> {
                       controller.isLoaded.value = true;
                     },
                     onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-                      printMessage(
-                        "⚠️ PDF Load Failed ($pdfUrl): ${details.error} - ${details.description}",
+                      controller.isPdfLoadError.value = true;
+                      CustomSnackBar.showError(
+                        title: 'Document Load Error',
+                        message:
+                            'Unable to load PDF document: ${details.description}',
                       );
-                      if (pdfUrl != PdfDetailController.fallbackPdfUrl) {
-                        controller.switchToFallbackPdfUrl();
-                      } else {
-                        CustomSnackBar.showError(
-                          title: 'Document Load Error',
-                          message:
-                              'Unable to load PDF document: ${details.description}',
-                        );
-                      }
                     },
                     onPageChanged: (PdfPageChangedDetails details) {
                       controller.currentPage.value = details.newPageNumber;
@@ -135,6 +202,11 @@ class PdfOpenPage extends GetView<PdfDetailController> {
 
                 // Layer 2: Interactive CustomPaint Annotation Layer
                 Obx(() {
+                  final hasError =
+                      controller.isPdfLoadError.value ||
+                      controller.effectivePdfUrl.value.isEmpty;
+                  if (hasError) return const SizedBox.shrink();
+
                   final mode = controller.activeMode.value;
 
                   return Positioned.fill(
@@ -174,7 +246,11 @@ class PdfOpenPage extends GetView<PdfDetailController> {
 
                 // Layer 3: View Mode Active Indicator Banner
                 Obx(() {
-                  if (controller.activeMode.value == AnnotationMode.view) {
+                  final hasError =
+                      controller.isPdfLoadError.value ||
+                      controller.effectivePdfUrl.value.isEmpty;
+                  if (hasError ||
+                      controller.activeMode.value == AnnotationMode.view) {
                     return const SizedBox.shrink();
                   }
                   return Positioned(
@@ -228,13 +304,17 @@ class PdfOpenPage extends GetView<PdfDetailController> {
           ),
 
           // Bottom Tool Control Panel (Color Palette & Stroke Slider)
-          if (userRole.canDraw)
-            Obx(() {
-              if (controller.activeMode.value == AnnotationMode.view) {
-                return const SizedBox.shrink();
-              }
-              return _buildBottomControlPanel(context);
-            }),
+          Obx(() {
+            final hasError =
+                controller.isPdfLoadError.value ||
+                controller.effectivePdfUrl.value.isEmpty;
+            if (!userRole.canDraw ||
+                hasError ||
+                controller.activeMode.value == AnnotationMode.view) {
+              return const SizedBox.shrink();
+            }
+            return _buildBottomControlPanel(context);
+          }),
         ],
       ),
     );
@@ -584,6 +664,8 @@ class PdfOpenPage extends GetView<PdfDetailController> {
         return Icons.cleaning_services_rounded;
       case AnnotationMode.view:
         return Icons.back_hand_outlined;
+      case AnnotationMode.cross:
+        return Icons.close_rounded;
     }
   }
 
@@ -597,6 +679,8 @@ class PdfOpenPage extends GetView<PdfDetailController> {
         return 'Eraser Active: Tap or drag to remove strokes';
       case AnnotationMode.view:
         return 'View Mode Active';
+      case AnnotationMode.cross:
+        return "Cross Mode Active: Tap canvas to place cross marker";
     }
   }
 }

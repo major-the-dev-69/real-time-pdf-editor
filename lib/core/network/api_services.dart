@@ -7,7 +7,6 @@ import 'package:dio/io.dart';
 import 'package:get/get.dart' hide FormData, Response;
 
 import '../../db/shared_pref_manager.dart';
-import '../../widgets/custom_snack_bar.dart';
 import '../helper/logger_helper.dart';
 import 'api_constants.dart';
 import 'retry_interceptor.dart';
@@ -259,7 +258,7 @@ class ApiServices extends GetxService {
 
     if (response.statusCode == 401) {
       const message = "Unauthorized access";
-      CustomSnackBar.showError(message: message);
+      await SharedPrefManager().userLogOut();
       return ResponseModel(false, message, null);
     }
 

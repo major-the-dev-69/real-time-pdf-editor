@@ -39,6 +39,219 @@ class PdfFormPage extends GetView<PdfFormController> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  'Project & Site Location',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Project Dropdown
+                Obx(() {
+                  final projects = controller.projectsList;
+                  final selectedId = controller.selectedProjectId.value;
+                  final isLoading = controller.isLoadingProjects.value;
+
+                  final validValue = projects.any((p) => p.id == selectedId) ? selectedId : null;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Project *',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        // ignore: deprecated_member_use
+                        value: validValue,
+                        isExpanded: true,
+                        icon: isLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.keyboard_arrow_down_rounded),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 15,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: isLoading ? 'Loading Projects...' : 'Select Project',
+                          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.hintColor,
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor: theme.colorScheme.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.business_rounded,
+                            color: theme.colorScheme.primary,
+                            size: 20,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.outline),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.outline),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
+                          ),
+                        ),
+                        items: projects.map((proj) {
+                          return DropdownMenuItem<String>(
+                            value: proj.id,
+                            child: Text(
+                              proj.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        validator: (val) {
+                          if (val == null || val.isEmpty) {
+                            return 'Please select a project';
+                          }
+                          return null;
+                        },
+                        onChanged: controller.onProjectChanged,
+                      ),
+                    ],
+                  );
+                }),
+
+                const SizedBox(height: 16),
+
+                // Site Dropdown
+                Obx(() {
+                  final sites = controller.sitesList;
+                  final selectedId = controller.selectedSiteId.value;
+                  final isLoading = controller.isLoadingSites.value;
+                  final hasProject = controller.selectedProjectId.value.isNotEmpty;
+
+                  final validValue = sites.any((s) => s.uuid == selectedId) ? selectedId : null;
+
+                  String hintStr = 'Select Site';
+                  if (!hasProject) {
+                    hintStr = 'Select Project First';
+                  } else if (isLoading) {
+                    hintStr = 'Loading Sites...';
+                  } else if (sites.isEmpty) {
+                    hintStr = 'No Sites Available';
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Site *',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        // ignore: deprecated_member_use
+                        value: validValue,
+                        isExpanded: true,
+                        icon: isLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.keyboard_arrow_down_rounded),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 15,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: hintStr,
+                          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.hintColor,
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor: theme.colorScheme.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          prefixIcon: Icon(
+                            AppAssets.icSiteMap,
+                            color: theme.colorScheme.primary,
+                            size: 20,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.outline),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.outline),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
+                          ),
+                        ),
+                        items: sites.map((site) {
+                          return DropdownMenuItem<String>(
+                            value: site.uuid,
+                            child: Text(
+                              site.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        validator: (val) {
+                          if (val == null || val.isEmpty) {
+                            return 'Please select a site';
+                          }
+                          return null;
+                        },
+                        onChanged: hasProject ? controller.onSiteChanged : null,
+                      ),
+                    ],
+                  );
+                }),
+
+                const SizedBox(height: 24),
+
+                Text(
                   'Document Metadata',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
