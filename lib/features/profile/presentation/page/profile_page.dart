@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sai_associates/core/utils/app_assets.dart';
 import '../../../../widgets/custom_buttons.dart';
-import '../../controller/profile_controller.dart';
+import '../controller/profile_controller.dart';
 
 class ProfilePage extends GetView<ProfileController> {
   const ProfilePage({super.key});
@@ -50,7 +50,6 @@ class ProfilePage extends GetView<ProfileController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Avatar Section
               Container(
                 width: 100,
                 height: 100,
