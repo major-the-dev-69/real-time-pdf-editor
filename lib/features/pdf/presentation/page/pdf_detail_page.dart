@@ -53,9 +53,14 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                   Get.dialog(
                     AlertDialog(
                       title: const Text('Delete PDF'),
-                      content: Text('Are you sure you want to delete "${pdf.title}"?'),
+                      content: Text(
+                        'Are you sure you want to delete "${pdf.title}"?',
+                      ),
                       actions: [
-                        TextButton(onPressed: Get.back, child: const Text('Cancel')),
+                        TextButton(
+                          onPressed: Get.back,
+                          child: const Text('Cancel'),
+                        ),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: theme.colorScheme.error,
@@ -262,7 +267,10 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                     SharedPrefManager().userRoleEnum.canDraw
                         ? 'Open & Edit PDF Document'
                         : 'Open & View PDF Document',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
@@ -271,6 +279,33 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Open NextGen PDF Editor (Test) Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Get.toNamed(AppRoutes.nextGenPdfOpen, arguments: pdf);
+                  },
+                  icon: const Icon(Icons.edit_note_rounded, size: 22),
+                  label: const Text(
+                    'Open NextGen PDF Editor (Test)',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    side: BorderSide(
+                      color: theme.colorScheme.primary,
+                      width: 1.5,
                     ),
                   ),
                 ),

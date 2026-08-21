@@ -231,7 +231,7 @@ class ApiServices extends GetxService {
   Future<ResponseModel> checkResponseModel(Response response) async {
     printMessage("Status Code: ${response.statusCode}");
     printMessage("Status Message: ${response.statusMessage}");
-    printMessage("Raw Response Data: ${response.data}");
+    printMessage("Raw Response Data: ${jsonEncode(response.data)}");
 
     dynamic responseData = response.data;
     if (responseData is String) {

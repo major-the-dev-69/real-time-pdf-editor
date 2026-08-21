@@ -44,13 +44,25 @@ class PdfDetailController extends GetxController {
   final selectedCrossSize = 20.0.obs;
 
   // Color Palette choices
-  final availableColors = const <Color>[
+  final availableColors = [
     Colors.red,
-    Colors.blue,
-    Colors.green,
-    Colors.amber,
+    Colors.pink,
     Colors.purple,
+    Colors.deepPurple,
+    Colors.indigo,
+    Colors.blue,
+    Colors.lightBlue,
+    Colors.cyan,
+    Colors.teal,
+    Colors.green,
+    Colors.lightGreen,
+    Colors.lime,
+    Colors.amber,
     Colors.orange,
+    Colors.deepOrange,
+    Colors.brown,
+    Colors.grey,
+    Colors.blueGrey,
     Colors.black,
     Colors.white,
   ];
@@ -63,6 +75,11 @@ class PdfDetailController extends GetxController {
 
   // Redo tracking stack
   final redoStack = <Map<String, dynamic>>[].obs;
+
+  bool get hasUnsavedChanges =>
+      lines.isNotEmpty ||
+      textAnnotations.isNotEmpty ||
+      crossAnnotations.isNotEmpty;
 
   String currentPusherChannel = '';
 
@@ -95,8 +112,7 @@ class PdfDetailController extends GetxController {
 
   void updatePdfUrlFromModel() {
     final modelUrl = pdfDocument.value?.pdfUrl.trim() ?? '';
-    if (modelUrl.isNotEmpty &&
-        (modelUrl.startsWith('http://') || modelUrl.startsWith('https://'))) {
+    if (modelUrl.isNotEmpty && (modelUrl.startsWith('https://'))) {
       effectivePdfUrl.value = modelUrl;
       isPdfLoadError.value = false;
     } else {
@@ -123,8 +139,6 @@ class PdfDetailController extends GetxController {
           response.data as Map<String, dynamic>,
         );
         pdfDocument.value = doc;
-
-        // Fetch annotations for this PDF
         await fetchAnnotations(pdfUuid);
       }
     } catch (e) {
@@ -147,10 +161,10 @@ class PdfDetailController extends GetxController {
 
       if (response.status && response.data != null) {
         dynamic annotationsData = response.data;
-        if (annotationsData is Map && annotationsData.containsKey('annotations')) {
+        if (annotationsData is Map &&
+            annotationsData.containsKey('annotations')) {
           annotationsData = annotationsData['annotations'];
         }
-
         if (annotationsData is List) {
           final loadedLines = <DrawnLine>[];
           final loadedTexts = <TextAnnotation>[];
@@ -173,8 +187,11 @@ class PdfDetailController extends GetxController {
                   }).toList();
                 }
 
-                final strokeW = (payload['strokeWidth'] as num?)?.toDouble() ?? 3.0;
-                final col = AnnotationModel.hexToColor(payload['color']?.toString());
+                final strokeW =
+                    (payload['strokeWidth'] as num?)?.toDouble() ?? 3.0;
+                final col = AnnotationModel.hexToColor(
+                  payload['color']?.toString(),
+                );
 
                 loadedLines.add(
                   DrawnLine(
@@ -190,7 +207,9 @@ class PdfDetailController extends GetxController {
                 final x = (payload['x'] as num?)?.toDouble() ?? 0.0;
                 final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
                 final fontS = (payload['fontSize'] as num?)?.toDouble() ?? 18.0;
-                final col = AnnotationModel.hexToColor(payload['color']?.toString());
+                final col = AnnotationModel.hexToColor(
+                  payload['color']?.toString(),
+                );
 
                 loadedTexts.add(
                   TextAnnotation(
@@ -206,7 +225,9 @@ class PdfDetailController extends GetxController {
                 final x = (payload['x'] as num?)?.toDouble() ?? 0.0;
                 final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
                 final sizeVal = (payload['size'] as num?)?.toDouble() ?? 20.0;
-                final col = AnnotationModel.hexToColor(payload['color']?.toString());
+                final col = AnnotationModel.hexToColor(
+                  payload['color']?.toString(),
+                );
 
                 loadedCrosses.add(
                   CrossAnnotation(
@@ -256,7 +277,9 @@ class PdfDetailController extends GetxController {
 
   void _handlePusherEvent(PusherEvent event) {
     try {
-      printMessage("📡 Handling Pusher Event in PdfDetailController: ${event.eventName}");
+      printMessage(
+        "📡 Handling Pusher Event in PdfDetailController: ${event.eventName}",
+      );
       dynamic data = event.data;
       if (data is String) {
         try {
@@ -267,18 +290,26 @@ class PdfDetailController extends GetxController {
       final eventName = event.eventName.toLowerCase();
 
       if (eventName.contains('created') || eventName.contains('added')) {
-        final annData = (data is Map && data.containsKey('annotation')) ? data['annotation'] : data;
+        final annData = (data is Map && data.containsKey('annotation'))
+            ? data['annotation']
+            : data;
         if (annData is Map<String, dynamic>) {
           _addOrUpdateSingleAnnotation(AnnotationModel.fromJson(annData));
         }
       } else if (eventName.contains('updated')) {
-        final annData = (data is Map && data.containsKey('annotation')) ? data['annotation'] : data;
+        final annData = (data is Map && data.containsKey('annotation'))
+            ? data['annotation']
+            : data;
         if (annData is Map<String, dynamic>) {
           _addOrUpdateSingleAnnotation(AnnotationModel.fromJson(annData));
         }
-      } else if (eventName.contains('deleted') || eventName.contains('removed')) {
+      } else if (eventName.contains('deleted') ||
+          eventName.contains('removed')) {
         final targetId = (data is Map)
-            ? (data['uuid']?.toString() ?? data['id']?.toString() ?? data['annotation_id']?.toString() ?? '')
+            ? (data['uuid']?.toString() ??
+                  data['id']?.toString() ??
+                  data['annotation_id']?.toString() ??
+                  '')
             : '';
         if (targetId.isNotEmpty) {
           lines.removeWhere((l) => l.id == targetId);
@@ -286,7 +317,9 @@ class PdfDetailController extends GetxController {
           crossAnnotations.removeWhere((c) => c.id == targetId);
         }
       } else if (eventName.contains('clear')) {
-        final pageNo = (data is Map) ? ((data['page_number'] as num?)?.toInt() ?? 1) : 1;
+        final pageNo = (data is Map)
+            ? ((data['page_number'] as num?)?.toInt() ?? 1)
+            : 1;
         lines.removeWhere((l) => l.pageNumber == pageNo);
         textAnnotations.removeWhere((t) => t.pageNumber == pageNo);
         crossAnnotations.removeWhere((c) => c.pageNumber == pageNo);
@@ -398,7 +431,10 @@ class PdfDetailController extends GetxController {
     return null;
   }
 
-  Future<bool> updateAnnotationApi(String annotationUuid, AnnotationModel item) async {
+  Future<bool> updateAnnotationApi(
+    String annotationUuid,
+    AnnotationModel item,
+  ) async {
     if (annotationUuid.isEmpty) return false;
 
     try {
@@ -843,8 +879,10 @@ class PdfDetailController extends GetxController {
     );
 
     try {
-      final sanitizedName = (pdfDocument.value?.title ?? 'document')
-          .replaceAll(RegExp(r'[^\w\s\.]'), '_');
+      final sanitizedName = (pdfDocument.value?.title ?? 'document').replaceAll(
+        RegExp(r'[^\w\s\.]'),
+        '_',
+      );
       final fileName =
           '${sanitizedName}_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final savePath = '${Directory.systemTemp.path}/$fileName';
@@ -960,13 +998,16 @@ class PdfDetailController extends GetxController {
     final title = doc?.title.isNotEmpty == true
         ? doc!.title
         : 'PBD Site Map / PDF Document';
-    final category =
-        doc?.category.isNotEmpty == true ? doc!.category : 'Real Estate';
-    final description =
-        doc?.description.isNotEmpty == true ? doc!.description : '';
+    final category = doc?.category.isNotEmpty == true
+        ? doc!.category
+        : 'Real Estate';
+    final description = doc?.description.isNotEmpty == true
+        ? doc!.description
+        : '';
     final pdfUrl = effectivePdfUrl.value.trim();
 
-    final shareText = '''
+    final shareText =
+        '''
 📄 *PBD Real Estate - Site Map & Document*
 
 📌 *Title*: $title

@@ -31,6 +31,8 @@ dependencies:
   webview_flutter_android: ^4.10.0
   fl_chart: ^1.2.0
   syncfusion_flutter_pdfviewer: ^34.2.3
+  syncfusion_flutter_pdf: ^34.2.3
+  path_provider: ^2.1.5
   pusher_channels_flutter: ^2.4.0
 
 dev_dependencies:

@@ -16,6 +16,7 @@ import '../features/notification/presentation/page/notification_page.dart';
 import '../features/pdf/binding/pdf_binding.dart';
 import '../features/pdf/presentation/page/pdf_detail_page.dart';
 import '../features/pdf/presentation/page/pdf_form_page.dart';
+import '../features/pdf/presentation/page/next_gen_pdf_open_page.dart';
 import '../features/pdf/presentation/page/pdf_open_page.dart';
 import '../features/profile/binding/profile_binding.dart';
 import '../features/profile/presentation/page/profile_page.dart';
@@ -51,6 +52,7 @@ class AppRoutes {
   static const notifications = '/notifications';
   static const pdfDetail = '/pdf-detail';
   static const pdfOpen = '/pdf-open';
+  static const nextGenPdfOpen = '/next-gen-pdf-open';
   static const welcomeLetter = '/welcome-letter';
   static const plots = '/plots';
   static const rewardIncomeDetail = '/reward-income-detail';
@@ -178,6 +180,13 @@ class AppPages {
     GetPage(
       name: AppRoutes.pdfOpen,
       page: () => const PdfOpenPage(),
+      binding: PdfBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.nextGenPdfOpen,
+      page: () => const NextGenPdfOpenPage(),
       binding: PdfBinding(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),
