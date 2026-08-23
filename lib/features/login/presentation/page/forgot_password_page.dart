@@ -10,16 +10,18 @@ import '../widget/otp_verification_bottom_sheet.dart';
 class ForgotPasswordPage extends GetView<ForgotPasswordController> {
   const ForgotPasswordPage({super.key});
 
-  void _openOtpBottomSheet(BuildContext context) {
+  void _openOtpBottomSheet(BuildContext context) async {
     if (!controller.forgotFormKey.currentState!.validate()) {
       return;
     }
-    controller.sendOtp();
-    Get.bottomSheet(
-      OtpVerificationBottomSheet(controller: controller),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-    );
+    final success = await controller.sendOtp();
+    if (success && context.mounted) {
+      Get.bottomSheet(
+        OtpVerificationBottomSheet(controller: controller),
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+      );
+    }
   }
 
   @override

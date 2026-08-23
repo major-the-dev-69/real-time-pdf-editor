@@ -25,10 +25,17 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
   void initState() {
     super.initState();
     _transformationController = TransformationController();
+    _transformationController.addListener(_onTransformationChanged);
+  }
+
+  void _onTransformationChanged() {
+    final scale = _transformationController.value.getMaxScaleOnAxis();
+    controller.setZoomScale(scale);
   }
 
   @override
   void dispose() {
+    _transformationController.removeListener(_onTransformationChanged);
     _transformationController.dispose();
     super.dispose();
   }
@@ -212,8 +219,9 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                           // PDF Viewer
                           SfPdfViewer.network(
                             pdfUrl,
-                            pageLayoutMode: PdfPageLayoutMode.continuous,
+                            pageLayoutMode: PdfPageLayoutMode.single,
                             controller: controller.pdfViewerController,
+                            scrollDirection: PdfScrollDirection.horizontal,
                             enableDoubleTapZooming: mode == AnnotationMode.view,
                             onDocumentLoaded: (details) {
                               controller.totalPages.value =
@@ -239,40 +247,81 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                             Positioned.fill(
                               child: IgnorePointer(
                                 ignoring: mode == AnnotationMode.view,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onPanStart: (details) {
-                                    final scenePoint = _transformationController
-                                        .toScene(details.localPosition);
-                                    controller.startLine(scenePoint);
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final renderSize = Size(
+                                      constraints.maxWidth,
+                                      constraints.maxHeight,
+                                    );
+                                    return GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onPanStart: (details) {
+                                        final scenePoint =
+                                            _transformationController.toScene(
+                                              details.localPosition,
+                                            );
+                                        controller.startLine(
+                                          scenePoint,
+                                          renderSize,
+                                        );
+                                      },
+                                      onPanUpdate: (details) {
+                                        final scenePoint =
+                                            _transformationController.toScene(
+                                              details.localPosition,
+                                            );
+                                        controller.updateLine(
+                                          scenePoint,
+                                          renderSize,
+                                        );
+                                      },
+                                      onPanEnd: (details) {
+                                        controller.endLine();
+                                      },
+                                      onTapUp: (details) {
+                                        final scenePoint =
+                                            _transformationController.toScene(
+                                              details.localPosition,
+                                            );
+                                        if (mode == AnnotationMode.text) {
+                                          _showAddTextDialog(
+                                            context,
+                                            scenePoint,
+                                            renderSize,
+                                          );
+                                        } else if (mode ==
+                                            AnnotationMode.cross) {
+                                          controller.addCrossAnnotation(
+                                            scenePoint,
+                                            renderSize,
+                                          );
+                                        } else if (mode ==
+                                            AnnotationMode.erase) {
+                                          controller.eraseNear(
+                                            scenePoint,
+                                            renderSize,
+                                          );
+                                        }
+                                      },
+                                      child: CustomPaint(
+                                        painter: AnnotationPainter(
+                                          lines: controller.lines.toList(),
+                                          currentLine:
+                                              controller.currentLine.value,
+                                          textAnnotations: controller
+                                              .textAnnotations
+                                              .toList(),
+                                          crossAnnotations: controller
+                                              .crossAnnotations
+                                              .toList(),
+                                          currentPage:
+                                              controller.currentPage.value,
+                                          scale: controller.zoomScale.value,
+                                        ),
+                                        child: const SizedBox.expand(),
+                                      ),
+                                    );
                                   },
-                                  onPanUpdate: (details) {
-                                    final scenePoint = _transformationController
-                                        .toScene(details.localPosition);
-                                    controller.updateLine(scenePoint);
-                                  },
-                                  onPanEnd: (details) {
-                                    controller.endLine();
-                                  },
-                                  onTapUp: (details) {
-                                    final scenePoint = _transformationController
-                                        .toScene(details.localPosition);
-                                    if (mode == AnnotationMode.text) {
-                                      _showAddTextDialog(context, scenePoint);
-                                    } else if (mode == AnnotationMode.erase) {
-                                      controller.eraseNear(scenePoint);
-                                    }
-                                  },
-                                  child: CustomPaint(
-                                    painter: AnnotationPainter(
-                                      lines: controller.lines.toList(),
-                                      currentLine: controller.currentLine.value,
-                                      textAnnotations: controller
-                                          .textAnnotations
-                                          .toList(),
-                                    ),
-                                    child: const SizedBox.expand(),
-                                  ),
                                 ),
                               ),
                             ),
@@ -357,8 +406,15 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                     final isFirstPage = currentPage <= 1;
                     final isLastPage = currentPage >= totalPages;
 
+                    var isView =
+                        controller.activeMode.value != AnnotationMode.view;
+
+                    var btm = isView
+                        ? 12.0
+                        : context.mediaQueryPadding.bottom + 12;
+
                     return Positioned(
-                      bottom: 16,
+                      bottom: btm,
                       left: 0,
                       right: 0,
                       child: Center(
@@ -442,6 +498,102 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                               ),
                             ],
                           ),
+                        ),
+                      ),
+                    );
+                  }),
+
+                  // Layer 4: Floating Zoom & Scale Controls
+                  Obx(() {
+                    final hasError =
+                        controller.isPdfLoadError.value ||
+                        controller.effectivePdfUrl.value.isEmpty;
+                    final isLoaded = controller.isLoaded.value;
+                    if (hasError || !isLoaded) {
+                      return const SizedBox.shrink();
+                    }
+
+                    var isNotView =
+                        controller.activeMode.value != AnnotationMode.view;
+
+                    final scalePercent = (controller.zoomScale.value * 100)
+                        .round();
+
+                    return Positioned(
+                      top: isNotView ? Get.height * 0.05 : Get.height * 0.02,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface.withValues(
+                            alpha: 0.95,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_rounded, size: 20),
+                              tooltip: 'Zoom Out',
+                              onPressed: () {
+                                controller.zoomOut();
+                                _transformationController.value =
+                                    Matrix4.diagonal3Values(
+                                      controller.zoomScale.value,
+                                      controller.zoomScale.value,
+                                      1.0,
+                                    );
+                              },
+                            ),
+                            InkWell(
+                              onTap: () {
+                                controller.resetZoom();
+                                _transformationController.value =
+                                    Matrix4.identity();
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                                child: Text(
+                                  '$scalePercent%',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_rounded, size: 20),
+                              tooltip: 'Zoom In',
+                              onPressed: () {
+                                controller.zoomIn();
+                                _transformationController.value =
+                                    Matrix4.diagonal3Values(
+                                      controller.zoomScale.value,
+                                      controller.zoomScale.value,
+                                      1.0,
+                                    );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -944,7 +1096,11 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
   }
 
   // Dialog for Adding Text Annotations
-  void _showAddTextDialog(BuildContext context, Offset position) {
+  void _showAddTextDialog(
+    BuildContext context,
+    Offset position, [
+    Size renderSize = Size.zero,
+  ]) {
     final textEditingController = TextEditingController();
 
     Get.dialog(
@@ -974,6 +1130,7 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                 controller.addTextAnnotation(
                   textEditingController.text,
                   position,
+                  renderSize,
                 );
               }
               Get.back();

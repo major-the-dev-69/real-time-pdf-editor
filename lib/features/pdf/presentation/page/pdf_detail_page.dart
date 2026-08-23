@@ -95,7 +95,7 @@ class PdfDetailPage extends GetView<PdfDetailController> {
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               // Main Document Card / Mock Viewer Preview Header
               Container(
                 width: double.infinity,
@@ -287,7 +287,7 @@ class PdfDetailPage extends GetView<PdfDetailController> {
               const SizedBox(height: 12),
 
               // Open NextGen PDF Editor (Test) Button
-              SizedBox(
+              /*SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
@@ -310,8 +310,8 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 14),
+              */
 
               // Action Buttons Row
               Row(

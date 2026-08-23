@@ -22,16 +22,16 @@ class OtpVerificationBottomSheet extends StatelessWidget {
     final primaryColor = colorScheme.primary;
 
     final defaultPinTheme = PinTheme(
-      width: 56,
-      height: 56,
+      width: 44,
+      height: 50,
       textStyle: textTheme.headlineSmall?.copyWith(
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: FontWeight.bold,
         color: colorScheme.onSurface,
       ),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: colorScheme.outline.withValues(alpha: 0.8),
           width: 1.5,
@@ -66,8 +66,8 @@ class OtpVerificationBottomSheet extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
+        left: 20,
+        right: 20,
         top: 12,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
@@ -116,7 +116,7 @@ class OtpVerificationBottomSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Verify OTP Code',
+                      'Verify 6-Digit OTP Code',
                       style: textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -138,10 +138,10 @@ class OtpVerificationBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 28),
 
-          // Pinput Field
+          // 6-Digit Pinput Field
           Center(
             child: Pinput(
-              length: 4,
+              length: 6,
               controller: controller.otpController,
               defaultPinTheme: defaultPinTheme,
               focusedPinTheme: focusedPinTheme,
@@ -176,7 +176,9 @@ class OtpVerificationBottomSheet extends StatelessWidget {
                   )
                 else
                   TextButton(
-                    onPressed: controller.sendOtp,
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : () => controller.sendOtp(),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.zero,
@@ -203,8 +205,10 @@ class OtpVerificationBottomSheet extends StatelessWidget {
               height: 50,
               borderRadius: 14,
               backgroundColor: primaryColor,
-              isLoading: controller.isLoading.value,
-              onPressed: controller.verifyOtpAndContinue,
+              isLoading: controller.isVerifyingOtp.value,
+              onPressed: controller.isVerifyingOtp.value
+                  ? null
+                  : controller.verifyOtpAndContinue,
               trailingWidget: Container(
                 width: 34,
                 height: 34,

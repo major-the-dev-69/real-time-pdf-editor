@@ -53,7 +53,9 @@ class PdfFormPage extends GetView<PdfFormController> {
                   final selectedId = controller.selectedProjectId.value;
                   final isLoading = controller.isLoadingProjects.value;
 
-                  final validValue = projects.any((p) => p.id == selectedId) ? selectedId : null;
+                  final validValue = projects.any((p) => p.id == selectedId)
+                      ? selectedId
+                      : null;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +77,9 @@ class PdfFormPage extends GetView<PdfFormController> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.keyboard_arrow_down_rounded),
                         style: theme.textTheme.bodyLarge?.copyWith(
@@ -83,7 +87,9 @@ class PdfFormPage extends GetView<PdfFormController> {
                           fontSize: 15,
                         ),
                         decoration: InputDecoration(
-                          hintText: isLoading ? 'Loading Projects...' : 'Select Project',
+                          hintText: isLoading
+                              ? 'Loading Projects...'
+                              : 'Select Project',
                           hintStyle: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.hintColor,
                             fontSize: 14,
@@ -101,23 +107,36 @@ class PdfFormPage extends GetView<PdfFormController> {
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.outline),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.outline,
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.outline),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.outline,
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.primary,
+                              width: 2,
+                            ),
                           ),
                           errorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.error,
+                              width: 1.5,
+                            ),
                           ),
                           focusedErrorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.error,
+                              width: 2,
+                            ),
                           ),
                         ),
                         items: projects.map((proj) {
@@ -149,9 +168,12 @@ class PdfFormPage extends GetView<PdfFormController> {
                   final sites = controller.sitesList;
                   final selectedId = controller.selectedSiteId.value;
                   final isLoading = controller.isLoadingSites.value;
-                  final hasProject = controller.selectedProjectId.value.isNotEmpty;
+                  final hasProject =
+                      controller.selectedProjectId.value.isNotEmpty;
 
-                  final validValue = sites.any((s) => s.uuid == selectedId) ? selectedId : null;
+                  final validValue = sites.any((s) => s.uuid == selectedId)
+                      ? selectedId
+                      : null;
 
                   String hintStr = 'Select Site';
                   if (!hasProject) {
@@ -182,7 +204,9 @@ class PdfFormPage extends GetView<PdfFormController> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.keyboard_arrow_down_rounded),
                         style: theme.textTheme.bodyLarge?.copyWith(
@@ -208,23 +232,36 @@ class PdfFormPage extends GetView<PdfFormController> {
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.outline),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.outline,
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.outline),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.outline,
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.primary,
+                              width: 2,
+                            ),
                           ),
                           errorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.error,
+                              width: 1.5,
+                            ),
                           ),
                           focusedErrorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.error, width: 2),
+                            borderSide: BorderSide(
+                              color: theme.colorScheme.error,
+                              width: 2,
+                            ),
                           ),
                         ),
                         items: sites.map((site) {

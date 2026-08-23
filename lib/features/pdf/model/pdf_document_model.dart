@@ -20,12 +20,12 @@ class PdfDocumentModel {
   final bool status;
 
   String get formattedDate => DateFormatterHelper.formatIsoDate(
-        updatedAt.isNotEmpty ? updatedAt : createdAt,
-      );
+    updatedAt.isNotEmpty ? updatedAt : createdAt,
+  );
 
   String get relativeDate => DateFormatterHelper.formatRelativeOrDate(
-        updatedAt.isNotEmpty ? updatedAt : createdAt,
-      );
+    updatedAt.isNotEmpty ? updatedAt : createdAt,
+  );
 
   const PdfDocumentModel({
     required this.id,
@@ -52,10 +52,15 @@ class PdfDocumentModel {
     String projName = '';
     final projectObj = json['project'];
     if (projectObj != null && projectObj is Map) {
-      projId = projectObj['uuid']?.toString() ?? projectObj['id']?.toString() ?? '';
-      projName = projectObj['title']?.toString() ?? projectObj['name']?.toString() ?? '';
+      projId =
+          projectObj['uuid']?.toString() ?? projectObj['id']?.toString() ?? '';
+      projName =
+          projectObj['title']?.toString() ??
+          projectObj['name']?.toString() ??
+          '';
     } else {
-      projId = json['projectId']?.toString() ?? json['project_id']?.toString() ?? '';
+      projId =
+          json['projectId']?.toString() ?? json['project_id']?.toString() ?? '';
       projName = json['projectName']?.toString() ?? '';
     }
 
@@ -83,7 +88,9 @@ class PdfDocumentModel {
     if (rawStatus is bool) {
       statusBool = rawStatus;
     } else if (rawStatus != null) {
-      statusBool = rawStatus.toString() == '1' || rawStatus.toString().toLowerCase() == 'true';
+      statusBool =
+          rawStatus.toString() == '1' ||
+          rawStatus.toString().toLowerCase() == 'true';
     }
 
     return PdfDocumentModel(
@@ -94,15 +101,22 @@ class PdfDocumentModel {
       siteId: sId,
       siteName: sName,
       fileSize: formattedSize,
-      updatedAt: json['updated_at']?.toString() ?? json['updatedAt']?.toString() ?? '',
-      createdAt: json['created_at']?.toString() ?? json['createdAt']?.toString() ?? '',
-      pageCount: (json['page_count'] as num?)?.toInt() ?? json['pageCount'] ?? 0,
+      updatedAt:
+          json['updated_at']?.toString() ?? json['updatedAt']?.toString() ?? '',
+      createdAt:
+          json['created_at']?.toString() ?? json['createdAt']?.toString() ?? '',
+      pageCount:
+          (json['page_count'] as num?)?.toInt() ?? json['pageCount'] ?? 0,
       pdfUrl: json['file_url']?.toString() ?? json['pdfUrl']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       sharedAvatars: const [],
       category: json['category']?.toString() ?? '',
-      originalName: json['original_name']?.toString() ?? json['originalName']?.toString() ?? '',
-      fileName: json['file_name']?.toString() ?? json['fileName']?.toString() ?? '',
+      originalName:
+          json['original_name']?.toString() ??
+          json['originalName']?.toString() ??
+          '',
+      fileName:
+          json['file_name']?.toString() ?? json['fileName']?.toString() ?? '',
       status: statusBool,
     );
   }

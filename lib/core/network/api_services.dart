@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:get/get.dart' hide FormData, Response;
+import 'package:sai_associates/app/app_routes.dart';
 
 import '../../db/shared_pref_manager.dart';
 import '../helper/logger_helper.dart';
@@ -244,7 +245,11 @@ class ApiServices extends GetxService {
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       if (responseData is Map<String, dynamic>) {
-        final status = responseData['status'] == true;
+        final status = responseData.containsKey('status')
+            ? (responseData['status'] == true ||
+                  responseData['status'] == 'true' ||
+                  responseData['status'] == 1)
+            : true;
         final message =
             responseData['message']?.toString() ??
             (status ? 'Success' : 'Error');
@@ -257,8 +262,10 @@ class ApiServices extends GetxService {
     }
 
     if (response.statusCode == 401) {
-      const message = "Unauthorized access";
-      await SharedPrefManager().userLogOut();
+      final message = responseData['message'] ?? "Unauthorized access";
+      if (Get.currentRoute != AppRoutes.login) {
+        await SharedPrefManager().userLogOut();
+      }
       return ResponseModel(false, message, null);
     }
 

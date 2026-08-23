@@ -46,6 +46,8 @@ class AppAssets {
   static const IconData icSearchNormal = Iconsax.search_normal_1_copy;
   static const IconData icCloseCircle = Iconsax.close_circle_copy;
   static const IconData icUser = Iconsax.user_copy;
+  static const IconData icUserAdd = Iconsax.user_add_copy;
+  static const IconData icAddCircle = Iconsax.add_circle_copy;
   static const IconData icDiscover = Iconsax.discover_copy;
 
   /// Iconsax Icons - Dashboard & Real Estate

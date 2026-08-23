@@ -8,6 +8,11 @@ class ApiConstants {
   static const logout = "auth/logout";
   static const projects = "projects";
   static const sites = "sites";
+  static const users = "users";
+
+  static const sendOtp = "forgot-password/send-otp";
+  static const verifyOtp = "forgot-password/verify-otp";
+  static const resetPassword = "forgot-password/reset";
 
   static const xApiKey = "x-api-key";
   static const xApiValue = "OPT-pCMr6da5EC2mC6p1OA8aW3znkrF2T3cg";

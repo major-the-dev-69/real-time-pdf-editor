@@ -26,13 +26,69 @@ class PdfDetailController extends GetxController {
   final isFetchingAnnotations = false.obs;
   final downloadProgress = 0.0.obs;
 
-  // Syncfusion PDF Controller
   late PdfViewerController pdfViewerController;
 
   // Page tracking
   final currentPage = 1.obs;
   final totalPages = 1.obs;
   final isLoaded = false.obs;
+
+  // Zoom & Scale Tracking
+  final zoomScale = 1.25.obs;
+
+  void zoomIn() {
+    if (zoomScale.value < 4.0) {
+      zoomScale.value = double.parse(
+        (zoomScale.value + 0.25).toStringAsFixed(2),
+      );
+      try {
+        pdfViewerController.zoomLevel = zoomScale.value;
+      } catch (_) {}
+    }
+  }
+
+  void zoomOut() {
+    if (zoomScale.value > 0.5) {
+      zoomScale.value = double.parse(
+        (zoomScale.value - 0.25).toStringAsFixed(2),
+      );
+      try {
+        pdfViewerController.zoomLevel = zoomScale.value;
+      } catch (_) {}
+    }
+  }
+
+  void resetZoom() {
+    zoomScale.value = 1.0;
+    try {
+      pdfViewerController.zoomLevel = 1.0;
+    } catch (_) {}
+  }
+
+  void setZoomScale(double val) {
+    if (val > 0) {
+      zoomScale.value = double.parse(val.toStringAsFixed(2));
+    }
+  }
+
+  Offset toPercentagePoint(Offset pixelPoint, Size renderSize) {
+    if (renderSize.width <= 0 || renderSize.height <= 0) return pixelPoint;
+    final pctX = double.parse(
+      ((pixelPoint.dx / renderSize.width) * 100.0).toStringAsFixed(2),
+    );
+    final pctY = double.parse(
+      ((pixelPoint.dy / renderSize.height) * 100.0).toStringAsFixed(2),
+    );
+    return Offset(pctX, pctY);
+  }
+
+  Offset toPixelPoint(Offset pctPoint, Size renderSize) {
+    if (renderSize.width <= 0 || renderSize.height <= 0) return pctPoint;
+    if (pctPoint.dx > 100.0 || pctPoint.dy > 100.0) return pctPoint;
+    final px = (pctPoint.dx / 100.0) * renderSize.width;
+    final py = (pctPoint.dy / 100.0) * renderSize.height;
+    return Offset(px, py);
+  }
 
   // Active Annotation Mode
   final activeMode = AnnotationMode.view.obs;
@@ -176,7 +232,7 @@ class PdfDetailController extends GetxController {
               final pageNo = annotation.pageNumber;
               final payload = annotation.payload;
 
-              if (annotation.type == 'pencil') {
+              if (annotation.type == 'pencil' || annotation.type == 'draw') {
                 final pointsRaw = payload['points'];
                 List<Offset> points = [];
                 if (pointsRaw is List) {
@@ -333,7 +389,7 @@ class PdfDetailController extends GetxController {
     final pageNo = annotation.pageNumber;
     final payload = annotation.payload;
 
-    if (annotation.type == 'pencil') {
+    if (annotation.type == 'pencil' || annotation.type == 'draw') {
       final pointsRaw = payload['points'];
       List<Offset> points = [];
       if (pointsRaw is List) {
@@ -574,23 +630,31 @@ class PdfDetailController extends GetxController {
 
   // --- DRAWING GESTURE HANDLERS ---
 
-  void startLine(Offset position) {
+  void startLine(Offset position, [Size renderSize = Size.zero]) {
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(position, renderSize)
+        : position;
+
     if (activeMode.value == AnnotationMode.draw) {
       currentLine.value = DrawnLine(
-        points: [position],
+        points: [pctPoint],
         color: selectedColor.value,
         strokeWidth: selectedStrokeWidth.value,
         pageNumber: currentPage.value,
       );
     } else if (activeMode.value == AnnotationMode.erase) {
-      eraseNear(position);
+      eraseNear(position, renderSize);
     }
   }
 
-  void updateLine(Offset position) {
+  void updateLine(Offset position, [Size renderSize = Size.zero]) {
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(position, renderSize)
+        : position;
+
     if (activeMode.value == AnnotationMode.draw && currentLine.value != null) {
       final updatedPoints = List<Offset>.from(currentLine.value!.points)
-        ..add(position);
+        ..add(pctPoint);
       currentLine.value = DrawnLine(
         points: updatedPoints,
         color: selectedColor.value,
@@ -598,7 +662,7 @@ class PdfDetailController extends GetxController {
         pageNumber: currentPage.value,
       );
     } else if (activeMode.value == AnnotationMode.erase) {
-      eraseNear(position);
+      eraseNear(position, renderSize);
     }
   }
 
@@ -608,7 +672,7 @@ class PdfDetailController extends GetxController {
       lines.add(newCompletedLine);
       currentLine.value = null;
 
-      final payload = AnnotationModel.createPencilPayload(
+      final payload = AnnotationModel.createDrawPayload(
         newCompletedLine.points,
         newCompletedLine.color,
         newCompletedLine.strokeWidth,
@@ -617,7 +681,8 @@ class PdfDetailController extends GetxController {
         id: '',
         pdfId: pdfDocument.value?.id ?? '',
         pageNumber: currentPage.value,
-        type: 'pencil',
+        type: 'draw',
+        scale: zoomScale.value,
         payload: payload,
       );
 
@@ -632,13 +697,21 @@ class PdfDetailController extends GetxController {
   }
 
   // Add Text Annotation
-  Future<void> addTextAnnotation(String text, Offset position) async {
+  Future<void> addTextAnnotation(
+    String text,
+    Offset position, [
+    Size renderSize = Size.zero,
+  ]) async {
     if (text.trim().isEmpty) return;
+
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(position, renderSize)
+        : position;
 
     final tempId = DateTime.now().millisecondsSinceEpoch.toString();
     final textAnn = TextAnnotation(
       id: tempId,
-      position: position,
+      position: pctPoint,
       text: text,
       color: selectedColor.value,
       fontSize: selectedFontSize.value,
@@ -649,7 +722,7 @@ class PdfDetailController extends GetxController {
 
     final payload = AnnotationModel.createTextPayload(
       text,
-      position,
+      pctPoint,
       selectedFontSize.value,
       selectedColor.value,
     );
@@ -658,6 +731,7 @@ class PdfDetailController extends GetxController {
       pdfId: pdfDocument.value?.id ?? '',
       pageNumber: currentPage.value,
       type: 'text',
+      scale: zoomScale.value,
       payload: payload,
     );
 
@@ -671,11 +745,18 @@ class PdfDetailController extends GetxController {
   }
 
   // Add Cross Annotation
-  Future<void> addCrossAnnotation(Offset position) async {
+  Future<void> addCrossAnnotation(
+    Offset position, [
+    Size renderSize = Size.zero,
+  ]) async {
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(position, renderSize)
+        : position;
+
     final tempId = DateTime.now().millisecondsSinceEpoch.toString();
     final crossAnn = CrossAnnotation(
       id: tempId,
-      position: position,
+      position: pctPoint,
       size: selectedCrossSize.value,
       color: selectedColor.value,
       pageNumber: currentPage.value,
@@ -684,7 +765,7 @@ class PdfDetailController extends GetxController {
     crossAnnotations.add(crossAnn);
 
     final payload = AnnotationModel.createCrossPayload(
-      position,
+      pctPoint,
       selectedCrossSize.value,
       selectedColor.value,
     );
@@ -693,6 +774,7 @@ class PdfDetailController extends GetxController {
       pdfId: pdfDocument.value?.id ?? '',
       pageNumber: currentPage.value,
       type: 'cross',
+      scale: zoomScale.value,
       payload: payload,
     );
 
@@ -706,13 +788,23 @@ class PdfDetailController extends GetxController {
   }
 
   // Erase annotations near touch point
-  Future<void> eraseNear(Offset point) async {
+  Future<void> eraseNear(Offset point, [Size renderSize = Size.zero]) async {
     const threshold = 25.0;
     final page = currentPage.value;
 
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(point, renderSize)
+        : point;
+
     final removedLines = lines.where((line) {
       return (line.pageNumber == page || line.pageNumber <= 0) &&
-          line.points.any((p) => (p - point).distance < threshold);
+          line.points.any((p) {
+            if (renderSize != Size.zero) {
+              final pixelP = toPixelPoint(p, renderSize);
+              return (pixelP - point).distance < threshold;
+            }
+            return (p - pctPoint).distance < threshold;
+          });
     }).toList();
 
     for (final line in removedLines) {
@@ -723,8 +815,12 @@ class PdfDetailController extends GetxController {
     }
 
     final removedTexts = textAnnotations.where((t) {
-      return (t.pageNumber == page || t.pageNumber <= 0) &&
-          (t.position - point).distance < threshold;
+      if (t.pageNumber != page && t.pageNumber > 0) return false;
+      if (renderSize != Size.zero) {
+        final pixelPos = toPixelPoint(t.position, renderSize);
+        return (pixelPos - point).distance < threshold;
+      }
+      return (t.position - pctPoint).distance < threshold;
     }).toList();
 
     for (final t in removedTexts) {
@@ -735,8 +831,12 @@ class PdfDetailController extends GetxController {
     }
 
     final removedCrosses = crossAnnotations.where((c) {
-      return (c.pageNumber == page || c.pageNumber <= 0) &&
-          (c.position - point).distance < threshold;
+      if (c.pageNumber != page && c.pageNumber > 0) return false;
+      if (renderSize != Size.zero) {
+        final pixelPos = toPixelPoint(c.position, renderSize);
+        return (pixelPos - point).distance < threshold;
+      }
+      return (c.position - pctPoint).distance < threshold;
     }).toList();
 
     for (final c in removedCrosses) {

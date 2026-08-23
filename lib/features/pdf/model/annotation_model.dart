@@ -5,6 +5,7 @@ class AnnotationModel {
   final String pdfId;
   final int pageNumber;
   final String type;
+  final double scale;
   final Map<String, dynamic> payload;
   final bool isUndone;
   final String createdAt;
@@ -14,6 +15,7 @@ class AnnotationModel {
     this.pdfId = '',
     required this.pageNumber,
     required this.type,
+    this.scale = 1.0,
     required this.payload,
     this.isUndone = false,
     this.createdAt = '',
@@ -38,12 +40,21 @@ class AnnotationModel {
           rawUndone.toString().toLowerCase() == 'true';
     }
 
+    final rawScale = json['scale'];
+    double scaleVal = 1.0;
+    if (rawScale is num) {
+      scaleVal = rawScale.toDouble();
+    } else if (rawScale != null) {
+      scaleVal = double.tryParse(rawScale.toString()) ?? 1.0;
+    }
+
     return AnnotationModel(
       id: json['uuid']?.toString() ?? json['id']?.toString() ?? '',
       pdfId: json['pdf_id']?.toString() ?? json['pdf_uuid']?.toString() ?? '',
       pageNumber:
           (json['page_number'] as num?)?.toInt() ?? json['page_number'] ?? 1,
-      type: json['type']?.toString() ?? 'pencil',
+      type: json['type']?.toString() ?? 'draw',
+      scale: scaleVal,
       payload: parsedPayload,
       isUndone: undoneBool,
       createdAt:
@@ -52,7 +63,12 @@ class AnnotationModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {'page_number': pageNumber, 'type': type, 'payload': payload};
+    return {
+      'page_number': pageNumber,
+      'type': type,
+      'scale': double.parse(scale.toStringAsFixed(2)),
+      'payload': payload,
+    };
   }
 
   static String colorToHex(Color color) {
@@ -72,19 +88,28 @@ class AnnotationModel {
     return intVal != null ? Color(intVal) : Colors.red;
   }
 
-  static Map<String, dynamic> createPencilPayload(
+  static Map<String, dynamic> createDrawPayload(
     List<Offset> points,
     Color color,
     double strokeWidth,
   ) {
     return {
       'points': points
-          .map((p) => {'x': p.dx.roundToDouble(), 'y': p.dy.roundToDouble()})
+          .map((p) => {
+                'x': double.parse(p.dx.toStringAsFixed(2)),
+                'y': double.parse(p.dy.toStringAsFixed(2)),
+              })
           .toList(),
       'color': colorToHex(color),
       'strokeWidth': strokeWidth.roundToDouble(),
     };
   }
+
+  static Map<String, dynamic> createPencilPayload(
+    List<Offset> points,
+    Color color,
+    double strokeWidth,
+  ) => createDrawPayload(points, color, strokeWidth);
 
   static Map<String, dynamic> createTextPayload(
     String text,
@@ -94,8 +119,8 @@ class AnnotationModel {
   ) {
     return {
       'text': text,
-      'x': position.dx.roundToDouble(),
-      'y': position.dy.roundToDouble(),
+      'x': double.parse(position.dx.toStringAsFixed(2)),
+      'y': double.parse(position.dy.toStringAsFixed(2)),
       'fontSize': fontSize.roundToDouble(),
       'color': colorToHex(color),
     };
@@ -107,8 +132,8 @@ class AnnotationModel {
     Color color,
   ) {
     return {
-      'x': position.dx.roundToDouble(),
-      'y': position.dy.roundToDouble(),
+      'x': double.parse(position.dx.toStringAsFixed(2)),
+      'y': double.parse(position.dy.toStringAsFixed(2)),
       'size': size.roundToDouble(),
       'color': colorToHex(color),
     };

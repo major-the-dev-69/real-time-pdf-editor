@@ -190,8 +190,10 @@ class ResetPasswordPage extends GetView<ForgotPasswordController> {
                                     height: 52,
                                     borderRadius: 14,
                                     backgroundColor: primaryColor,
-                                    isLoading: controller.isLoading.value,
-                                    onPressed: controller.resetPassword,
+                                    isLoading: controller.isResettingPassword.value,
+                                    onPressed: controller.isResettingPassword.value
+                                        ? null
+                                        : controller.resetPassword,
                                     trailingWidget: Container(
                                       width: 36,
                                       height: 36,

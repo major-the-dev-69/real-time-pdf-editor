@@ -106,6 +106,7 @@ class AnnotationPainter extends CustomPainter {
   final List<TextAnnotation> textAnnotations;
   final List<CrossAnnotation> crossAnnotations;
   final int currentPage;
+  final double scale;
 
   const AnnotationPainter({
     required this.lines,
@@ -113,38 +114,55 @@ class AnnotationPainter extends CustomPainter {
     required this.textAnnotations,
     this.crossAnnotations = const [],
     this.currentPage = 1,
+    this.scale = 1.0,
   });
+
+  Offset _toPixelOffset(Offset pt, Size size) {
+    if (size.width <= 0 || size.height <= 0) return pt;
+    // Map percentage (0..100) to actual canvas dimensions on the current device
+    final dx = (pt.dx >= 0 && pt.dx <= 100.0)
+        ? (pt.dx / 100.0) * size.width
+        : pt.dx;
+    final dy = (pt.dy >= 0 && pt.dy <= 100.0)
+        ? (pt.dy / 100.0) * size.height
+        : pt.dy;
+    return Offset(dx, dy);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Paint Completed Lines for current page
+    if (size.width <= 0 || size.height <= 0) return;
+
+    // 1. Paint Completed Lines for current page only
     for (final line in lines) {
       if (line.pageNumber == currentPage || line.pageNumber <= 0) {
-        _drawLine(canvas, line);
+        _drawLine(canvas, line, size);
       }
     }
 
-    // 2. Paint Active Current Line
+    // 2. Paint Active Current Line (if matching current page)
     if (currentLine != null) {
-      _drawLine(canvas, currentLine!);
+      if (currentLine!.pageNumber == currentPage || currentLine!.pageNumber <= 0) {
+        _drawLine(canvas, currentLine!, size);
+      }
     }
 
-    // 3. Paint Text Annotations for current page
+    // 3. Paint Text Annotations for current page only
     for (final annotation in textAnnotations) {
       if (annotation.pageNumber == currentPage || annotation.pageNumber <= 0) {
-        _drawText(canvas, annotation);
+        _drawText(canvas, annotation, size);
       }
     }
 
-    // 4. Paint Cross Annotations for current page
+    // 4. Paint Cross Annotations for current page only
     for (final cross in crossAnnotations) {
       if (cross.pageNumber == currentPage || cross.pageNumber <= 0) {
-        _drawCross(canvas, cross);
+        _drawCross(canvas, cross, size);
       }
     }
   }
 
-  void _drawLine(Canvas canvas, DrawnLine line) {
+  void _drawLine(Canvas canvas, DrawnLine line, Size size) {
     if (line.points.isEmpty) return;
 
     final paint = Paint()
@@ -154,20 +172,23 @@ class AnnotationPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
 
-    if (line.points.length == 1) {
-      canvas.drawCircle(line.points.first, line.strokeWidth / 2, paint);
+    final pixelPoints = line.points.map((pt) => _toPixelOffset(pt, size)).toList();
+
+    if (pixelPoints.length == 1) {
+      canvas.drawCircle(pixelPoints.first, line.strokeWidth / 2, paint);
       return;
     }
 
     final path = Path();
-    path.moveTo(line.points.first.dx, line.points.first.dy);
-    for (int i = 1; i < line.points.length; i++) {
-      path.lineTo(line.points[i].dx, line.points[i].dy);
+    path.moveTo(pixelPoints.first.dx, pixelPoints.first.dy);
+    for (int i = 1; i < pixelPoints.length; i++) {
+      path.lineTo(pixelPoints[i].dx, pixelPoints[i].dy);
     }
     canvas.drawPath(path, paint);
   }
 
-  void _drawText(Canvas canvas, TextAnnotation annotation) {
+  void _drawText(Canvas canvas, TextAnnotation annotation, Size size) {
+    final pos = _toPixelOffset(annotation.position, size);
     final textStyle = TextStyle(
       color: annotation.color,
       fontSize: annotation.fontSize,
@@ -192,10 +213,11 @@ class AnnotationPainter extends CustomPainter {
     );
 
     textPainter.layout();
-    textPainter.paint(canvas, annotation.position);
+    textPainter.paint(canvas, pos);
   }
 
-  void _drawCross(Canvas canvas, CrossAnnotation cross) {
+  void _drawCross(Canvas canvas, CrossAnnotation cross, Size size) {
+    final center = _toPixelOffset(cross.position, size);
     final half = cross.size / 2;
     final paint = Paint()
       ..color = cross.color
@@ -203,14 +225,11 @@ class AnnotationPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    final center = cross.position;
-    // Top-left to bottom-right
     canvas.drawLine(
       Offset(center.dx - half, center.dy - half),
       Offset(center.dx + half, center.dy + half),
       paint,
     );
-    // Bottom-left to top-right
     canvas.drawLine(
       Offset(center.dx - half, center.dy + half),
       Offset(center.dx + half, center.dy - half),

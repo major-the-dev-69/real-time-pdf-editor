@@ -3,11 +3,17 @@ import 'package:get/get.dart';
 import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/api_services.dart';
+import '../../../../db/shared_pref_manager.dart';
 import '../../../pdf/model/pdf_document_model.dart';
+import '../../../profile/model/user_profile_model.dart';
 import '../../model/real_estate_project_model.dart';
 
 class DashboardController extends GetxController {
   final currentIndex = 0.obs;
+
+  // Profile & Role State
+  final userProfile = Rxn<UserProfileModel>();
+  final userRole = ''.obs;
 
   // Real Estate Projects List
   final projectsList = <RealEstateProject>[].obs;
@@ -23,7 +29,41 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    userRole.value = SharedPrefManager().userRole;
+    fetchProfile();
     fetchProjects();
+  }
+
+  Future<void> fetchProfile() async {
+    try {
+      final response = await Get.find<ApiServices>().callGetApi(
+        ApiConstants.profile,
+        isUserRequired: true,
+      );
+      if (response.status && response.data != null) {
+        final data = response.data;
+        String? role;
+        if (data is Map<String, dynamic>) {
+          if (data['user'] != null && data['user'] is Map<String, dynamic>) {
+            userProfile.value = UserProfileModel.fromJson(
+              data['user'] as Map<String, dynamic>,
+            );
+            role = userProfile.value?.role;
+          } else if (data['role'] != null) {
+            role = data['role'].toString();
+          }
+        }
+        if (role != null && role.isNotEmpty) {
+          await SharedPrefManager().saveRole(role);
+          userRole.value = role;
+          printMessage(
+            "✅ Profile fetched in DashboardController. Role updated in SharedPrefs: $role",
+          );
+        }
+      }
+    } catch (e) {
+      printMessage("⚠️ Error fetching profile in DashboardController: $e");
+    }
   }
 
   Future<void> fetchProjects() async {
@@ -40,6 +80,9 @@ class DashboardController extends GetxController {
               .map((e) => RealEstateProject.fromJson(e as Map<String, dynamic>))
               .toList();
           projectsList.assignAll(fetched);
+          if (fetched.isNotEmpty) {
+            fetchSitesForProject(projectsList.first.id);
+          }
         }
       }
     } catch (e) {
@@ -123,6 +166,9 @@ class DashboardController extends GetxController {
               description: old.description,
               sites: parsedSites,
             );
+          }
+          if (parsedSites.isNotEmpty) {
+            fetchPdfsForSite(parsedSites.first.id);
           }
         }
       }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sai_associates/widgets/custom_buttons.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/enums/user_role.dart';
@@ -11,6 +12,23 @@ import '../widgets/project_card.dart';
 
 class DashboardPage extends GetView<DashboardController> {
   const DashboardPage({super.key});
+
+  String _getRoleInitial(UserRole role) {
+    final roleStr = SharedPrefManager().userRole.trim();
+    if (roleStr.isNotEmpty) {
+      return roleStr[0].toUpperCase();
+    }
+    switch (role) {
+      case UserRole.superAdmin:
+        return 'S';
+      case UserRole.admin:
+        return 'A';
+      case UserRole.viewer:
+        return 'V';
+      case UserRole.unknown:
+        return 'U';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,35 +85,51 @@ class DashboardPage extends GetView<DashboardController> {
                             ),
                             Row(
                               children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color:
-                                        theme.colorScheme.surfaceContainerHigh,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(
-                                      Icons.person_outline_rounded,
+                                if (userRole == UserRole.superAdmin) ...[
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: theme
+                                          .colorScheme
+                                          .surfaceContainerHigh,
+                                      shape: BoxShape.circle,
                                     ),
-                                    onPressed: () {
-                                      Get.toNamed(AppRoutes.profile);
-                                    },
-                                    color: theme.colorScheme.onSurface,
+                                    child: IconButton(
+                                      icon: const Icon(AppAssets.icUserAdd),
+                                      onPressed: () {
+                                        Get.toNamed(AppRoutes.userList);
+                                      },
+                                      color: theme.colorScheme.onSurface,
+                                      tooltip: 'Add User',
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color:
-                                        theme.colorScheme.surfaceContainerHigh,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(AppAssets.icNotification),
-                                    onPressed: () {
-                                      Get.toNamed(AppRoutes.notifications);
-                                    },
-                                    color: theme.colorScheme.onSurface,
+                                  const SizedBox(width: 8),
+                                ],
+                                GestureDetector(
+                                  onTap: () {
+                                    Get.toNamed(AppRoutes.profile);
+                                  },
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primaryContainer,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: theme.colorScheme.primary
+                                            .withValues(alpha: 0.3),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        _getRoleInitial(userRole),
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              color: theme.colorScheme.primary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -110,38 +144,57 @@ class DashboardPage extends GetView<DashboardController> {
                 // Search Bar permanently pinned inside AppBar bottom
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(60),
-                  child: Container(
+                  child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                    color: theme.scaffoldBackgroundColor,
-                    child: TextField(
-                      onChanged: controller.updateSearchQuery,
-                      decoration: InputDecoration(
-                        hintText: 'Search site name, project or PDF...',
-                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.5,
-                          ),
-                        ),
-                        prefixIcon: const Icon(AppAssets.icSearch, size: 20),
-                        suffixIcon: controller.searchQuery.value.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  AppAssets.icCloseCircle,
-                                  size: 18,
-                                ),
-                                onPressed: () =>
-                                    controller.updateSearchQuery(''),
-                              )
-                            : const Icon(AppAssets.icFilterTag, size: 18),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 16,
-                        ),
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHigh,
-                        border: OutlineInputBorder(
+                    child: Hero(
+                      tag: 'dashboard_search_bar',
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Get.toNamed(AppRoutes.search);
+                          },
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  AppAssets.icSearch,
+                                  size: 20,
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Search site name, project or PDF...',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.5),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Icon(
+                                  AppAssets.icFilterTag,
+                                  size: 18,
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -551,7 +604,7 @@ class DashboardPage extends GetView<DashboardController> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Try selecting a different project or site filter.',
+                          'Pdfs Not Found Add your pdfs',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface.withValues(
@@ -559,12 +612,28 @@ class DashboardPage extends GetView<DashboardController> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: controller.clearFilters,
-                          icon: const Icon(AppAssets.icCloseCircle, size: 16),
-                          label: const Text('Reset Filters'),
-                        ),
+                        if (userRole.canUploadPdf) ...[
+                          const SizedBox(height: 16),
+                          CustomButton(
+                            onPressed: () async {
+                              final result = await Get.toNamed(
+                                AppRoutes.addPdf,
+                                arguments: {
+                                  'siteId': selectedSiteId != 'all'
+                                      ? selectedSiteId
+                                      : '',
+                                  'projectId': selectedProjId != 'all'
+                                      ? selectedProjId
+                                      : '',
+                                },
+                              );
+                              if (result == true && selectedSiteId != 'all') {
+                                controller.fetchPdfsForSite(selectedSiteId);
+                              }
+                            },
+                            title: 'Add Pdfs',
+                          ),
+                        ],
                       ],
                     ),
                   ),

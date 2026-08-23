@@ -27,6 +27,12 @@ import '../features/site/binding/site_binding.dart';
 import '../features/site/presentation/page/site_form_page.dart';
 import '../features/site/presentation/page/site_list_page.dart';
 
+import '../features/search/binding/search_binding.dart';
+import '../features/search/presentation/page/search_page.dart';
+import '../features/user/binding/user_binding.dart';
+import '../features/user/presentation/page/user_form_page.dart';
+import '../features/user/presentation/page/user_list_page.dart';
+
 class AppRoutes {
   AppRoutes._();
 
@@ -35,6 +41,7 @@ class AppRoutes {
   static const forgotPassword = '/forgot-password';
   static const resetPassword = '/reset-password';
   static const dashboard = '/dashboard';
+  static const search = '/search';
   static const profile = '/profile';
   static const addProject = '/add-project';
   static const editProject = '/edit-project';
@@ -48,6 +55,8 @@ class AppRoutes {
   static const business = '/business';
   static const team = '/team';
   static const newRegister = '/new-register';
+  static const userList = '/user-list';
+  static const userForm = '/user-form';
   static const kyc = '/kyc';
   static const notifications = '/notifications';
   static const pdfDetail = '/pdf-detail';
@@ -190,6 +199,34 @@ class AppPages {
       binding: PdfBinding(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.userList,
+      page: () => const UserListPage(),
+      binding: UserBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.userForm,
+      page: () => const UserFormPage(),
+      binding: UserBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.newRegister,
+      page: () => const UserFormPage(),
+      binding: UserBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.search,
+      page: () => const SearchPage(),
+      binding: SearchBinding(),
+      transition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 300),
     ),
   ];
 }
