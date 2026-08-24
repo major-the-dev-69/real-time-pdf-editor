@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/network/api_constants.dart';
@@ -50,9 +50,11 @@ class PdfFormController extends GetxController {
     if (args == null) return;
 
     if (args is Map<String, dynamic>) {
-      siteId.value = args['siteId']?.toString() ?? args['site_id']?.toString() ?? '';
+      siteId.value =
+          args['siteId']?.toString() ?? args['site_id']?.toString() ?? '';
       selectedSiteId.value = siteId.value;
-      selectedProjectId.value = args['projectId']?.toString() ?? args['project_id']?.toString() ?? '';
+      selectedProjectId.value =
+          args['projectId']?.toString() ?? args['project_id']?.toString() ?? '';
 
       final pdfObj = args['pdf'];
       if (pdfObj != null) {
@@ -71,22 +73,32 @@ class PdfFormController extends GetxController {
             siteId.value = pdfObj.siteId;
           }
         } else if (pdfObj is Map<String, dynamic>) {
-          pdfUuid.value = pdfObj['uuid']?.toString() ?? pdfObj['id']?.toString() ?? '';
+          pdfUuid.value =
+              pdfObj['uuid']?.toString() ?? pdfObj['id']?.toString() ?? '';
           titleController.text = pdfObj['title']?.toString() ?? '';
           categoryController.text = pdfObj['category']?.toString() ?? '';
           descriptionController.text = pdfObj['description']?.toString() ?? '';
-          status.value = pdfObj['status'] == true || pdfObj['status']?.toString() == '1';
+          status.value =
+              pdfObj['status'] == true || pdfObj['status']?.toString() == '1';
 
-          final pId = pdfObj['projectId']?.toString() ??
+          final pId =
+              pdfObj['projectId']?.toString() ??
               pdfObj['project_id']?.toString() ??
-              (pdfObj['project'] is Map ? pdfObj['project']['uuid']?.toString() ?? pdfObj['project']['id']?.toString() : null);
+              (pdfObj['project'] is Map
+                  ? pdfObj['project']['uuid']?.toString() ??
+                        pdfObj['project']['id']?.toString()
+                  : null);
           if (pId != null && pId.isNotEmpty) {
             selectedProjectId.value = pId;
           }
 
-          final sId = pdfObj['siteId']?.toString() ??
+          final sId =
+              pdfObj['siteId']?.toString() ??
               pdfObj['site_id']?.toString() ??
-              (pdfObj['site'] is Map ? pdfObj['site']['uuid']?.toString() ?? pdfObj['site']['id']?.toString() : null);
+              (pdfObj['site'] is Map
+                  ? pdfObj['site']['uuid']?.toString() ??
+                        pdfObj['site']['id']?.toString()
+                  : null);
           if (sId != null && sId.isNotEmpty) {
             selectedSiteId.value = sId;
             siteId.value = sId;
@@ -119,7 +131,10 @@ class PdfFormController extends GetxController {
         final rawProjects = data['projects'];
         if (rawProjects is List) {
           final fetched = rawProjects
-              .map((item) => RealEstateProject.fromJson(item as Map<String, dynamic>))
+              .map(
+                (item) =>
+                    RealEstateProject.fromJson(item as Map<String, dynamic>),
+              )
               .toList();
           projectsList.assignAll(fetched);
         }
@@ -210,10 +225,13 @@ class PdfFormController extends GetxController {
 
   Future<void> pickPdfFile() async {
     try {
-      final picker = ImagePicker();
-      final pickedMedia = await picker.pickMedia();
-      if (pickedMedia != null) {
-        selectedFile.value = File(pickedMedia.path);
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result.first.path != null) {
+        selectedFile.value = File(result.first.path!);
       }
     } catch (e) {
       CustomSnackBar.showError(message: "Failed to select file: $e");
@@ -229,7 +247,9 @@ class PdfFormController extends GetxController {
       return;
     }
 
-    final targetSiteUuid = selectedSiteId.value.isNotEmpty ? selectedSiteId.value : siteId.value;
+    final targetSiteUuid = selectedSiteId.value.isNotEmpty
+        ? selectedSiteId.value
+        : siteId.value;
 
     if (!isEditMode.value) {
       if (selectedProjectId.value.isEmpty) {
@@ -300,4 +320,3 @@ class PdfFormController extends GetxController {
     }
   }
 }
-

@@ -3,7 +3,9 @@ import 'package:get/get.dart';
 
 import '../../../../core/utils/app_assets.dart';
 import '../../../../widgets/custom_buttons.dart';
+import '../../../../widgets/custom_dropdown.dart';
 import '../../../../widgets/custom_text_field.dart';
+import 'package:sai_associates/app/app_routes.dart';
 import '../controller/site_form_controller.dart';
 
 class SiteFormPage extends GetView<SiteFormController> {
@@ -17,9 +19,8 @@ class SiteFormPage extends GetView<SiteFormController> {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Obx(
-          () => Text(
-            controller.isEditMode.value ? 'Edit Site' : 'Add New Site',
-          ),
+          () =>
+              Text(controller.isEditMode.value ? 'Edit Site' : 'Add New Site'),
         ),
         elevation: 0,
         centerTitle: true,
@@ -43,6 +44,49 @@ class SiteFormPage extends GetView<SiteFormController> {
                     color: theme.colorScheme.primary,
                   ),
                 ),
+                const SizedBox(height: 16),
+                Obx(() {
+                  final projects = controller.projectsList;
+                  final selectedId = controller.projectId.value;
+                  final isLoading = controller.isLoadingProjects.value;
+
+                  final validValue = projects.any((p) => p.id == selectedId)
+                      ? selectedId
+                      : null;
+
+                  return CustomDropdown<String>(
+                    value: validValue,
+                    labelText: 'Project *',
+                    hintText: isLoading
+                        ? 'Loading Projects...'
+                        : 'Select Project',
+                    prefixIcon: Icons.business_rounded,
+                    isLoading: isLoading,
+                    items: projects.map((proj) {
+                      return DropdownMenuItem<String>(
+                        value: proj.id,
+                        child: Text(
+                          proj.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    validator: (val) {
+                      if (val == null || val.isEmpty) {
+                        return 'Please select a project';
+                      }
+                      return null;
+                    },
+                    onChanged: controller.onProjectChanged,
+                    onAddPressed: () async {
+                      final result = await Get.toNamed(AppRoutes.addProject);
+                      if (result != null && result as bool) {
+                        controller.fetchProjects();
+                      }
+                    },
+                  );
+                }),
                 const SizedBox(height: 16),
                 CustomTextField(
                   controller: controller.nameController,

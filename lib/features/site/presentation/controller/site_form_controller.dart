@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/api_services.dart';
 import '../../../../widgets/custom_snack_bar.dart';
+import '../../../dashboard/model/real_estate_project_model.dart';
 import '../../model/project_site_model.dart';
 import '../../model/site_request_model.dart';
 
@@ -21,10 +23,14 @@ class SiteFormController extends GetxController {
   final siteUuid = ''.obs;
   final isEditMode = false.obs;
 
+  final projectsList = <RealEstateProject>[].obs;
+  final isLoadingProjects = false.obs;
+
   @override
   void onInit() {
     super.onInit();
     _checkArguments();
+    fetchProjects();
   }
 
   void _checkArguments() {
@@ -69,6 +75,37 @@ class SiteFormController extends GetxController {
 
   void toggleStatus(bool? value) {
     status.value = value ?? true;
+  }
+
+  Future<void> fetchProjects() async {
+    isLoadingProjects.value = true;
+    try {
+      final response = await Get.find<ApiServices>().callGetApi(
+        ApiConstants.projects,
+        isUserRequired: true,
+      );
+
+      if (response.status && response.data != null) {
+        final data = response.data;
+        final rawProjects = data['projects'];
+        if (rawProjects is List) {
+          final fetched = rawProjects
+              .map((item) => RealEstateProject.fromJson(item as Map<String, dynamic>))
+              .toList();
+          projectsList.assignAll(fetched);
+        }
+      }
+    } catch (e) {
+      printMessage("⚠️ Error fetching projects in SiteFormController: $e");
+    } finally {
+      isLoadingProjects.value = false;
+    }
+  }
+
+  void onProjectChanged(String? newProjectId) {
+    if (newProjectId != null) {
+      projectId.value = newProjectId;
+    }
   }
 
   Future<void> submitSite() async {

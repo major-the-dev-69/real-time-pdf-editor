@@ -3,8 +3,7 @@ import 'package:get/get.dart';
 
 import 'app/app_routes.dart';
 import 'app/init_app.dart';
-import 'core/helper/in_app_update.dart';
-import 'core/style/theme/app_dark_theme.dart';
+
 import 'core/style/theme/app_light_theme.dart';
 import 'core/utils/app_constants.dart';
 
@@ -22,11 +21,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
       theme: AppLightTheme.theme,
-      darkTheme: AppDarkTheme.theme,
-      themeMode: ThemeMode.system,
-      onInit: () {
-        AppUpdate.initialize();
-      },
+      themeMode: ThemeMode.light,
       getPages: AppPages.getPages,
     );
   }

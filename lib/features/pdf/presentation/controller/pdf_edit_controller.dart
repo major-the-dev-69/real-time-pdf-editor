@@ -28,7 +28,7 @@ class PdfEditController extends GetxController {
   final isLoaded = false.obs;
 
   // Zoom & Scale Tracking
-  final zoomScale = 1.25.obs;
+  final zoomScale = 1.0.obs;
 
   void zoomIn() {
     if (zoomScale.value < 4.0) {

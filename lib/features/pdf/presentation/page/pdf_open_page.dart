@@ -212,7 +212,7 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                       transformationController: _transformationController,
                       minScale: 1.0,
                       maxScale: 5.0,
-                      panEnabled: mode == AnnotationMode.view,
+
                       scaleEnabled: mode == AnnotationMode.view,
                       child: Stack(
                         children: [
@@ -222,7 +222,9 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                             pageLayoutMode: PdfPageLayoutMode.single,
                             controller: controller.pdfViewerController,
                             scrollDirection: PdfScrollDirection.horizontal,
-                            enableDoubleTapZooming: mode == AnnotationMode.view,
+                            enableDoubleTapZooming: false,
+                            initialZoomLevel: 1,
+                            maxZoomLevel: 1,
                             onDocumentLoaded: (details) {
                               controller.totalPages.value =
                                   details.document.pages.count;
