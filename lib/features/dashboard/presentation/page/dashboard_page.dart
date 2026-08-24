@@ -430,68 +430,39 @@ class DashboardPage extends GetView<DashboardController> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
-                    children: [
-                      FilterChip(
-                        selected: selectedSiteId == 'all',
-                        label: const Text('All Sites'),
-                        onSelected: (selected) => controller.selectSite('all'),
-                        backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                        selectedColor: theme.colorScheme.primaryContainer,
-                        checkmarkColor: theme.colorScheme.primary,
-                        labelStyle: TextStyle(
-                          color: selectedSiteId == 'all'
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurface,
-                          fontWeight: selectedSiteId == 'all'
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          fontSize: 13,
-                        ),
-                        side: BorderSide(
-                          color: theme.colorScheme.outline.withValues(
-                            alpha: 0.15,
+                    children: availableSites.map((site) {
+                      final isSelected = selectedSiteId == site.id;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: FilterChip(
+                          selected: isSelected,
+                          label: Text(site.name),
+                          onSelected: (selected) =>
+                              controller.selectSite(site.id),
+                          backgroundColor:
+                              theme.colorScheme.surfaceContainerHigh,
+                          selectedColor: theme.colorScheme.primaryContainer,
+                          checkmarkColor: theme.colorScheme.primary,
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontSize: 13,
                           ),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ...availableSites.map((site) {
-                        final isSelected = selectedSiteId == site.id;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: FilterChip(
-                            selected: isSelected,
-                            label: Text(site.name),
-                            onSelected: (selected) => controller.selectSite(
-                              isSelected ? 'all' : site.id,
-                            ),
-                            backgroundColor:
-                                theme.colorScheme.surfaceContainerHigh,
-                            selectedColor: theme.colorScheme.primaryContainer,
-                            checkmarkColor: theme.colorScheme.primary,
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurface,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 13,
-                            ),
-                            side: BorderSide(
-                              color: theme.colorScheme.outline.withValues(
-                                alpha: 0.15,
-                              ),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: theme.colorScheme.outline.withValues(
+                              alpha: 0.15,
                             ),
                           ),
-                        );
-                      }),
-                    ],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
               ),
@@ -537,15 +508,11 @@ class DashboardPage extends GetView<DashboardController> {
                               final result = await Get.toNamed(
                                 AppRoutes.addPdf,
                                 arguments: {
-                                  'siteId': selectedSiteId != 'all'
-                                      ? selectedSiteId
-                                      : '',
-                                  'projectId': selectedProjId != 'all'
-                                      ? selectedProjId
-                                      : '',
+                                  'siteId': selectedSiteId,
+                                  'projectId': selectedProjId,
                                 },
                               );
-                              if (result == true && selectedSiteId != 'all') {
+                              if (result == true && selectedSiteId.isNotEmpty) {
                                 controller.fetchPdfsForSite(selectedSiteId);
                               }
                             },
@@ -570,7 +537,6 @@ class DashboardPage extends GetView<DashboardController> {
                 ),
               ),
 
-              // Filtered PDF Documents List
               if (filteredPdfs.isEmpty)
                 SliverToBoxAdapter(
                   child: Container(
@@ -619,15 +585,11 @@ class DashboardPage extends GetView<DashboardController> {
                               final result = await Get.toNamed(
                                 AppRoutes.addPdf,
                                 arguments: {
-                                  'siteId': selectedSiteId != 'all'
-                                      ? selectedSiteId
-                                      : '',
-                                  'projectId': selectedProjId != 'all'
-                                      ? selectedProjId
-                                      : '',
+                                  'siteId': selectedSiteId,
+                                  'projectId': selectedProjId,
                                 },
                               );
-                              if (result == true && selectedSiteId != 'all') {
+                              if (result == true && selectedSiteId.isNotEmpty) {
                                 controller.fetchPdfsForSite(selectedSiteId);
                               }
                             },

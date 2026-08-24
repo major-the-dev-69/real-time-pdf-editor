@@ -26,6 +26,8 @@ class PdfDetailController extends GetxController {
   final isFetchingAnnotations = false.obs;
   final downloadProgress = 0.0.obs;
 
+  final apiServices = Get.find<ApiServices>();
+
   late PdfViewerController pdfViewerController;
 
   // Page tracking
@@ -185,7 +187,7 @@ class PdfDetailController extends GetxController {
 
     try {
       final endpoint = 'pdfs/$pdfUuid';
-      final response = await Get.find<ApiServices>().callGetApi(
+      final response = await apiServices.callGetApi(
         endpoint,
         isUserRequired: true,
       );
@@ -210,7 +212,7 @@ class PdfDetailController extends GetxController {
 
     try {
       final endpoint = 'pdfs/$pdfUuid/annotations';
-      final response = await Get.find<ApiServices>().callGetApi(
+      final response = await apiServices.callGetApi(
         endpoint,
         isUserRequired: true,
       );

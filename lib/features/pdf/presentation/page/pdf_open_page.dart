@@ -303,23 +303,25 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                                           );
                                         }
                                       },
-                                      child: CustomPaint(
-                                        painter: AnnotationPainter(
-                                          lines: controller.lines.toList(),
-                                          currentLine:
-                                              controller.currentLine.value,
-                                          textAnnotations: controller
-                                              .textAnnotations
-                                              .toList(),
-                                          crossAnnotations: controller
-                                              .crossAnnotations
-                                              .toList(),
-                                          currentPage:
-                                              controller.currentPage.value,
-                                          scale: controller.zoomScale.value,
-                                        ),
-                                        child: const SizedBox.expand(),
-                                      ),
+                                      child: Obx(() {
+                                        return CustomPaint(
+                                          painter: AnnotationPainter(
+                                            lines: controller.lines.toList(),
+                                            currentLine:
+                                                controller.currentLine.value,
+                                            textAnnotations: controller
+                                                .textAnnotations
+                                                .toList(),
+                                            crossAnnotations: controller
+                                                .crossAnnotations
+                                                .toList(),
+                                            currentPage:
+                                                controller.currentPage.value,
+                                            scale: controller.zoomScale.value,
+                                          ),
+                                          child: const SizedBox.expand(),
+                                        );
+                                      }),
                                     );
                                   },
                                 ),

@@ -23,7 +23,7 @@ class DashboardController extends GetxController {
 
   // Filter States
   final selectedProjectId = 'all'.obs;
-  final selectedSiteId = 'all'.obs;
+  final selectedSiteId = ''.obs;
   final searchQuery = ''.obs;
 
   @override
@@ -117,7 +117,8 @@ class DashboardController extends GetxController {
         return false;
       }
       // Site Filter
-      if (selectedSiteId.value != 'all' && pdf.siteId != selectedSiteId.value) {
+      if (selectedSiteId.value.isNotEmpty &&
+          pdf.siteId != selectedSiteId.value) {
         return false;
       }
       // Search Query Filter
@@ -168,7 +169,10 @@ class DashboardController extends GetxController {
             );
           }
           if (parsedSites.isNotEmpty) {
+            selectedSiteId.value = parsedSites.first.id;
             fetchPdfsForSite(parsedSites.first.id);
+          } else {
+            selectedSiteId.value = '';
           }
         }
       }
@@ -178,7 +182,7 @@ class DashboardController extends GetxController {
   }
 
   Future<void> fetchPdfsForSite(String siteId) async {
-    if (siteId == 'all' || siteId.isEmpty) return;
+    if (siteId.isEmpty) return;
 
     try {
       final endpoint = 'sites/$siteId/pdfs';
@@ -210,17 +214,23 @@ class DashboardController extends GetxController {
   void selectProject(String id) {
     if (selectedProjectId.value == id) return;
     selectedProjectId.value = id;
-    selectedSiteId.value = 'all'; // Reset site selection on project change
     if (id != 'all') {
       fetchSitesForProject(id);
+    } else {
+      final sites = availableSites;
+      if (sites.isNotEmpty) {
+        selectedSiteId.value = sites.first.id;
+        fetchPdfsForSite(sites.first.id);
+      } else {
+        selectedSiteId.value = '';
+      }
     }
   }
 
   void selectSite(String id) {
+    if (id.isEmpty) return;
     selectedSiteId.value = id;
-    if (id != 'all') {
-      fetchPdfsForSite(id);
-    }
+    fetchPdfsForSite(id);
   }
 
   void updateSearchQuery(String query) {
@@ -229,7 +239,13 @@ class DashboardController extends GetxController {
 
   void clearFilters() {
     selectedProjectId.value = 'all';
-    selectedSiteId.value = 'all';
     searchQuery.value = '';
+    final sites = availableSites;
+    if (sites.isNotEmpty) {
+      selectedSiteId.value = sites.first.id;
+      fetchPdfsForSite(sites.first.id);
+    } else {
+      selectedSiteId.value = '';
+    }
   }
 }
