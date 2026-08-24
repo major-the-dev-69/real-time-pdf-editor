@@ -14,6 +14,7 @@ import '../features/notification/binding/notification_binding.dart';
 import '../features/notification/presentation/page/notification_page.dart';
 
 import '../features/pdf/binding/pdf_binding.dart';
+import '../features/pdf/binding/pdf_edit_binding.dart';
 import '../features/pdf/presentation/page/pdf_detail_page.dart';
 import '../features/pdf/presentation/page/pdf_form_page.dart';
 import '../features/pdf/presentation/page/next_gen_pdf_open_page.dart';
@@ -189,14 +190,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.pdfOpen,
       page: () => const PdfOpenPage(),
-      binding: PdfBinding(),
+      binding: PdfEditBinding(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: AppRoutes.nextGenPdfOpen,
       page: () => const NextGenPdfOpenPage(),
-      binding: PdfBinding(),
+      binding: PdfEditBinding(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),
     ),

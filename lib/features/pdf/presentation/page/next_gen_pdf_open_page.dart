@@ -10,6 +10,7 @@ import '../../../../edit_pdf/nextgen_pdf_edit_screen.dart';
 import '../../../../widgets/custom_buttons.dart';
 import '../../../../widgets/custom_snack_bar.dart';
 import '../controller/pdf_detail_controller.dart';
+import '../controller/pdf_edit_controller.dart';
 
 class NextGenPdfOpenPage extends StatefulWidget {
   const NextGenPdfOpenPage({super.key});
@@ -61,16 +62,19 @@ class _NextGenPdfOpenPageState extends State<NextGenPdfOpenPage> {
         }
       }
 
-      // 2. Try fetching URL from arguments or Get.find<PdfDetailController>()
+      // 2. Try fetching URL from arguments or registered controllers
       String? pdfUrl;
       if (args is Map<String, dynamic> && args['url'] is String) {
         pdfUrl = args['url'];
       } else if (args is String &&
           (args.startsWith('http://') || args.startsWith('https://'))) {
         pdfUrl = args;
+      } else if (Get.isRegistered<PdfEditController>()) {
+        final controller = Get.find<PdfEditController>();
+        pdfUrl = controller.effectivePdfUrl.value;
       } else if (Get.isRegistered<PdfDetailController>()) {
         final controller = Get.find<PdfDetailController>();
-        pdfUrl = controller.effectivePdfUrl.value;
+        pdfUrl = controller.pdfDocument.value?.pdfUrl;
       }
 
       if (pdfUrl != null &&

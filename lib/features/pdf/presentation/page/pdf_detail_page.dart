@@ -287,7 +287,7 @@ class PdfDetailPage extends GetView<PdfDetailController> {
               const SizedBox(height: 12),
 
               // Open NextGen PDF Editor (Test) Button
-              SizedBox(
+              /*SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
@@ -311,7 +311,7 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                 ),
               ),
               const SizedBox(height: 14),
-              // */
+              */
 
               // Action Buttons Row
               Row(

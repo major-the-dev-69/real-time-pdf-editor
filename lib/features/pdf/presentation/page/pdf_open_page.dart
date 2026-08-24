@@ -7,7 +7,7 @@ import '../../../../core/utils/app_assets.dart';
 import '../../../../db/shared_pref_manager.dart';
 import '../../../../widgets/custom_buttons.dart';
 import '../../../../widgets/custom_snack_bar.dart';
-import '../controller/pdf_detail_controller.dart';
+import '../controller/pdf_edit_controller.dart';
 import '../widgets/annotation_painter.dart';
 
 class PdfOpenPage extends StatefulWidget {
@@ -19,7 +19,7 @@ class PdfOpenPage extends StatefulWidget {
 
 class _PdfOpenPageState extends State<PdfOpenPage> {
   late TransformationController _transformationController;
-  final controller = Get.find<PdfDetailController>();
+  final controller = Get.find<PdfEditController>();
 
   @override
   void initState() {
