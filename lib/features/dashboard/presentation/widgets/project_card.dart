@@ -267,7 +267,7 @@ class ProjectCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${project.sites.length} Sites',
+                                '${project.siteCount} Sites',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,

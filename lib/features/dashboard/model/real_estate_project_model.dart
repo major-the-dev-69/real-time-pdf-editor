@@ -46,7 +46,6 @@ class RealEstateProject {
   final String status;
   final String builderName;
   final String description;
-  final List<SiteName> sites;
 
   const RealEstateProject({
     required this.id,
@@ -58,7 +57,6 @@ class RealEstateProject {
     required this.status,
     this.builderName = '',
     this.description = '',
-    required this.sites,
   });
 
   factory RealEstateProject.fromJson(Map<String, dynamic> json) {
@@ -68,14 +66,6 @@ class RealEstateProject {
       statusStr = rawStatus ? 'Active' : 'Inactive';
     } else if (rawStatus != null) {
       statusStr = rawStatus.toString();
-    }
-
-    final rawSites = json['sites'];
-    List<SiteName> parsedSites = [];
-    if (rawSites is List) {
-      parsedSites = rawSites
-          .map((s) => SiteName.fromJson(s as Map<String, dynamic>))
-          .toList();
     }
 
     final idStr = json['uuid']?.toString() ?? json['id']?.toString() ?? '';
@@ -91,7 +81,7 @@ class RealEstateProject {
       title: titleStr,
       location: json['location']?.toString() ?? '',
       imageUrl: finalImageUrl,
-      siteCount: json['site_count'] ?? parsedSites.length,
+      siteCount: json['site_count'] ?? 0,
       pdfCount: json['pdf_count'] ?? 0,
       status: statusStr,
       builderName:
@@ -99,7 +89,6 @@ class RealEstateProject {
           json['builderName']?.toString() ??
           '',
       description: json['description']?.toString() ?? '',
-      sites: parsedSites,
     );
   }
 

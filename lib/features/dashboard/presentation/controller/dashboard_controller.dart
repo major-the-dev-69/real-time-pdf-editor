@@ -21,8 +21,11 @@ class DashboardController extends GetxController {
   // All PDF Documents
   final allPdfs = <PdfDocumentModel>[].obs;
 
+  // All Sites
+  final allSites = <SiteName>[].obs;
+
   // Filter States
-  final selectedProjectId = 'all'.obs;
+  final selectedProjectId = ''.obs;
   final selectedSiteId = ''.obs;
   final searchQuery = ''.obs;
 
@@ -81,7 +84,7 @@ class DashboardController extends GetxController {
               .toList();
           projectsList.assignAll(fetched);
           if (fetched.isNotEmpty) {
-            fetchSitesForProject(projectsList.first.id);
+            selectProject(fetched.first.id);
           }
         }
       }
@@ -95,32 +98,15 @@ class DashboardController extends GetxController {
   }
 
   // Get available sites based on selected project
-  List<SiteName> get availableSites {
-    if (selectedProjectId.value == 'all') {
-      return projectsList.expand((proj) => proj.sites).toList();
-    }
-    final index = projectsList.indexWhere(
-      (p) => p.id == selectedProjectId.value,
-    );
-    if (index != -1) {
-      return projectsList[index].sites;
-    }
-    return [];
-  }
+  List<SiteName> get availableSites => allSites;
 
   // Filtered PDFs computed property
   List<PdfDocumentModel> get filteredPdfs {
+    if (searchQuery.value.trim().isEmpty) {
+      return allPdfs;
+    }
+    
     return allPdfs.where((pdf) {
-      // Project Filter
-      if (selectedProjectId.value != 'all' &&
-          pdf.projectId != selectedProjectId.value) {
-        return false;
-      }
-      // Site Filter
-      if (selectedSiteId.value.isNotEmpty &&
-          pdf.siteId != selectedSiteId.value) {
-        return false;
-      }
       // Search Query Filter
       if (searchQuery.value.trim().isNotEmpty) {
         final query = searchQuery.value.toLowerCase().trim();
@@ -135,7 +121,11 @@ class DashboardController extends GetxController {
   }
 
   Future<void> fetchSitesForProject(String projId) async {
-    if (projId == 'all' || projId.isEmpty) return;
+    if (projId.isEmpty) return;
+    
+    allSites.clear();
+    allPdfs.clear();
+    selectedSiteId.value = '';
 
     try {
       final endpoint = '${ApiConstants.projects}/$projId/sites';
@@ -152,27 +142,10 @@ class DashboardController extends GetxController {
               .map((s) => SiteName.fromJson(s as Map<String, dynamic>))
               .toList();
 
-          final index = projectsList.indexWhere((p) => p.id == projId);
-          if (index != -1) {
-            final old = projectsList[index];
-            projectsList[index] = RealEstateProject(
-              id: old.id,
-              title: old.title,
-              location: old.location,
-              imageUrl: old.imageUrl,
-              siteCount: parsedSites.length,
-              pdfCount: old.pdfCount,
-              status: old.status,
-              builderName: old.builderName,
-              description: old.description,
-              sites: parsedSites,
-            );
-          }
+          allSites.assignAll(parsedSites);
+
           if (parsedSites.isNotEmpty) {
-            selectedSiteId.value = parsedSites.first.id;
-            fetchPdfsForSite(parsedSites.first.id);
-          } else {
-            selectedSiteId.value = '';
+            selectSite(parsedSites.first.id);
           }
         }
       }
@@ -200,10 +173,7 @@ class DashboardController extends GetxController {
               .map((p) => PdfDocumentModel.fromJson(p as Map<String, dynamic>))
               .toList();
 
-          final remaining = allPdfs
-              .where((pdf) => pdf.siteId != siteId)
-              .toList();
-          allPdfs.assignAll([...fetchedPdfs, ...remaining]);
+          allPdfs.assignAll(fetchedPdfs);
         }
       }
     } catch (e) {
@@ -212,23 +182,13 @@ class DashboardController extends GetxController {
   }
 
   void selectProject(String id) {
-    if (selectedProjectId.value == id) return;
+    if (selectedProjectId.value == id || id.isEmpty) return;
     selectedProjectId.value = id;
-    if (id != 'all') {
-      fetchSitesForProject(id);
-    } else {
-      final sites = availableSites;
-      if (sites.isNotEmpty) {
-        selectedSiteId.value = sites.first.id;
-        fetchPdfsForSite(sites.first.id);
-      } else {
-        selectedSiteId.value = '';
-      }
-    }
+    fetchSitesForProject(id);
   }
 
   void selectSite(String id) {
-    if (id.isEmpty) return;
+    if (selectedSiteId.value == id || id.isEmpty) return;
     selectedSiteId.value = id;
     fetchPdfsForSite(id);
   }
@@ -238,14 +198,6 @@ class DashboardController extends GetxController {
   }
 
   void clearFilters() {
-    selectedProjectId.value = 'all';
     searchQuery.value = '';
-    final sites = availableSites;
-    if (sites.isNotEmpty) {
-      selectedSiteId.value = sites.first.id;
-      fetchPdfsForSite(sites.first.id);
-    } else {
-      selectedSiteId.value = '';
-    }
   }
 }

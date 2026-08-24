@@ -342,9 +342,7 @@ class DashboardPage extends GetView<DashboardController> {
                         return ProjectCard(
                           project: project,
                           isSelected: selectedProjId == project.id,
-                          onTap: () => controller.selectProject(
-                            selectedProjId == project.id ? 'all' : project.id,
-                          ),
+                          onTap: () => controller.selectProject(project.id),
                           onEdit: userRole.canEditProject
                               ? () {
                                   Get.toNamed(
@@ -390,39 +388,65 @@ class DashboardPage extends GetView<DashboardController> {
                           ),
                         ),
                         const Spacer(),
-                        if (selectedProjId != 'all')
-                          Material(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              onTap: () {
-                                Get.toNamed(
-                                  AppRoutes.siteList,
-                                  arguments: {'projectId': selectedProjId},
-                                );
-                              },
+                        Row(
+                          children: [
+                            Material(
+                              color: Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
-                              splashColor: theme.colorScheme.primary.withValues(
-                                alpha: 0.15,
-                              ),
-                              highlightColor: theme.colorScheme.primary
-                                  .withValues(alpha: 0.08),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                child: Text(
-                                  'Manage Sites',
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: theme.colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () {
+                                  Get.toNamed(AppRoutes.siteList);
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                splashColor: theme.colorScheme.primary
+                                    .withValues(alpha: 0.15),
+                                highlightColor: theme.colorScheme.primary
+                                    .withValues(alpha: 0.08),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  child: Text(
+                                    'View All',
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: theme.colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+                            if (userRole.canCreateProject) ...[
+                              const SizedBox(width: 4),
+                              Material(
+                                color: Colors.transparent,
+                                shape: const CircleBorder(),
+                                clipBehavior: Clip.antiAlias,
+                                child: InkWell(
+                                  onTap: () {
+                                    Get.toNamed(AppRoutes.addSite);
+                                  },
+                                  customBorder: const CircleBorder(),
+                                  splashColor: theme.colorScheme.primary
+                                      .withValues(alpha: 0.15),
+                                  highlightColor: theme.colorScheme.primary
+                                      .withValues(alpha: 0.08),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Icon(
+                                      Icons.add_circle_outline_rounded,
+                                      color: theme.colorScheme.primary,
+                                      size: 24,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),
