@@ -60,6 +60,11 @@ class ForgotPasswordController extends GetxController {
       return false;
     }
 
+    if (selectedInputMode.value == 'phone') {
+      CustomSnackBar.showInfo(message: "Only Email Options Is Availiable");
+      return false;
+    }
+
     final email = emailController.text.trim();
     if (email.isEmpty) {
       CustomSnackBar.showError(
@@ -121,10 +126,7 @@ class ForgotPasswordController extends GetxController {
 
     isVerifyingOtp.value = true;
     try {
-      final req = {
-        'email': email,
-        'otp': enteredPin,
-      };
+      final req = {'email': email, 'otp': enteredPin};
 
       final response = await Get.find<ApiServices>().callPostApi(
         ApiConstants.verifyOtp,
@@ -138,9 +140,7 @@ class ForgotPasswordController extends GetxController {
         }
         CustomSnackBar.showSuccess(
           title: 'OTP Verified',
-          message: response.message.isNotEmpty
-              ? response.message
-              : 'OTP verified successfully',
+          message: response.message,
         );
         Get.toNamed(AppRoutes.resetPassword);
       } else {
@@ -170,10 +170,7 @@ class ForgotPasswordController extends GetxController {
 
     isResettingPassword.value = true;
     try {
-      final req = {
-        'email': email,
-        'password': newPassword,
-      };
+      final req = {'email': email, 'password': newPassword};
 
       final response = await Get.find<ApiServices>().callPostApi(
         ApiConstants.resetPassword,
