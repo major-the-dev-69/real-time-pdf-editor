@@ -212,36 +212,39 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                       transformationController: _transformationController,
                       minScale: 1.0,
                       maxScale: 5.0,
-
-                      scaleEnabled: mode == AnnotationMode.view,
+                      panEnabled: controller.zoomScale.value > 1.0,
+                      scaleEnabled: true,
                       child: Stack(
                         children: [
                           // PDF Viewer
-                          SfPdfViewer.network(
-                            pdfUrl,
-                            pageLayoutMode: PdfPageLayoutMode.single,
-                            controller: controller.pdfViewerController,
-                            scrollDirection: PdfScrollDirection.horizontal,
-                            enableDoubleTapZooming: false,
-                            initialZoomLevel: 1,
-                            maxZoomLevel: 1,
-                            onDocumentLoaded: (details) {
-                              controller.totalPages.value =
-                                  details.document.pages.count;
-                              controller.isLoaded.value = true;
-                            },
-                            onDocumentLoadFailed: (details) {
-                              controller.isPdfLoadError.value = true;
-                              controller.isLoaded.value = false;
-                              CustomSnackBar.showError(
-                                title: 'Document Load Error',
-                                message: details.description,
-                              );
-                            },
-                            onPageChanged: (details) {
-                              controller.currentPage.value =
-                                  details.newPageNumber;
-                            },
+                          AbsorbPointer(
+                            absorbing: true,
+                            child: SfPdfViewer.network(
+                              pdfUrl,
+                              pageLayoutMode: PdfPageLayoutMode.single,
+                              controller: controller.pdfViewerController,
+                              scrollDirection: PdfScrollDirection.vertical,
+                              enableDoubleTapZooming: false,
+                              initialZoomLevel: 1,
+                              maxZoomLevel: 1,
+                              onDocumentLoaded: (details) {
+                                controller.totalPages.value =
+                                    details.document.pages.count;
+                                controller.isLoaded.value = true;
+                              },
+                              onDocumentLoadFailed: (details) {
+                                controller.isPdfLoadError.value = true;
+                                controller.isLoaded.value = false;
+                                CustomSnackBar.showError(
+                                  title: 'Document Load Error',
+                                  message: details.description,
+                                );
+                              },
+                              onPageChanged: (details) {
+                                controller.currentPage.value =
+                                    details.newPageNumber;
+                              },
+                            ),
                           ),
 
                           // Interactive CustomPaint Annotation Layer (only visible when PDF is loaded properly)
@@ -258,22 +261,14 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                                     return GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onPanStart: (details) {
-                                        final scenePoint =
-                                            _transformationController.toScene(
-                                              details.localPosition,
-                                            );
                                         controller.startLine(
-                                          scenePoint,
+                                          details.localPosition,
                                           renderSize,
                                         );
                                       },
                                       onPanUpdate: (details) {
-                                        final scenePoint =
-                                            _transformationController.toScene(
-                                              details.localPosition,
-                                            );
                                         controller.updateLine(
-                                          scenePoint,
+                                          details.localPosition,
                                           renderSize,
                                         );
                                       },
@@ -281,26 +276,22 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                                         controller.endLine();
                                       },
                                       onTapUp: (details) {
-                                        final scenePoint =
-                                            _transformationController.toScene(
-                                              details.localPosition,
-                                            );
                                         if (mode == AnnotationMode.text) {
                                           _showAddTextDialog(
                                             context,
-                                            scenePoint,
+                                            details.localPosition,
                                             renderSize,
                                           );
                                         } else if (mode ==
                                             AnnotationMode.cross) {
                                           controller.addCrossAnnotation(
-                                            scenePoint,
+                                            details.localPosition,
                                             renderSize,
                                           );
                                         } else if (mode ==
                                             AnnotationMode.erase) {
                                           controller.eraseNear(
-                                            scenePoint,
+                                            details.localPosition,
                                             renderSize,
                                           );
                                         }
@@ -555,15 +546,20 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                             IconButton(
                               icon: const Icon(Icons.remove_rounded, size: 20),
                               tooltip: 'Zoom Out',
-                              onPressed: () {
-                                controller.zoomOut();
-                                _transformationController.value =
-                                    Matrix4.diagonal3Values(
-                                      controller.zoomScale.value,
-                                      controller.zoomScale.value,
-                                      1.0,
-                                    );
-                              },
+                              onPressed: controller.zoomScale.value <= 1.0
+                                  ? null
+                                  : () {
+                                      controller.zoomOut();
+                                      if (controller.zoomScale.value < 1.0) {
+                                        controller.setZoomScale(1.0);
+                                      }
+                                      _transformationController.value =
+                                          Matrix4.diagonal3Values(
+                                            controller.zoomScale.value,
+                                            controller.zoomScale.value,
+                                            1.0,
+                                          );
+                                    },
                             ),
                             InkWell(
                               onTap: () {
