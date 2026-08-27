@@ -1,8 +1,8 @@
 class ApiConstants {
   ApiConstants._();
 
-  static const baseUrl = "https://pbd.nivrajsoftware.in/api/v1";
-  static const apiBaseUrl = "$baseUrl/";
+  static const baseUrl = "https://pbd.nivrajsoftware.in";
+  static const apiBaseUrl = "$baseUrl/api/v1/";
   static const login = "auth/login";
   static const profile = "auth/profile";
   static const logout = "auth/logout";

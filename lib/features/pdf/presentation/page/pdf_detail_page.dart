@@ -286,34 +286,6 @@ class PdfDetailPage extends GetView<PdfDetailController> {
 
               const SizedBox(height: 12),
 
-              // Open NextGen PDF Editor (Test) Button
-              /*SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Get.toNamed(AppRoutes.nextGenPdfOpen, arguments: pdf);
-                  },
-                  icon: const Icon(Icons.edit_note_rounded, size: 22),
-                  label: const Text(
-                    'Open NextGen PDF Editor (Test)',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    side: BorderSide(
-                      color: theme.colorScheme.primary,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              */
-
-              // Action Buttons Row
               Row(
                 children: [
                   Expanded(

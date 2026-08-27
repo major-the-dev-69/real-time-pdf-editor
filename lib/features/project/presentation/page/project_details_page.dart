@@ -214,7 +214,7 @@ class ProjectDetailsPage extends GetView<ProjectDetailController> {
                       return PdfListItem(
                         pdf: pdf,
                         onTap: () {
-                          Get.toNamed(AppRoutes.pdfDetail, arguments: pdf);
+                          Get.toNamed(AppRoutes.pdfDetail, arguments: pdf.id);
                         },
                       );
                     }, childCount: filteredPdfs.length),

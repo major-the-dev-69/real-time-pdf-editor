@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:sai_associates/core/network/api_constants.dart';
 
 import 'package:share_plus/share_plus.dart';
 
@@ -19,23 +20,10 @@ class PdfDetailController extends GetxController {
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-    if (args is PdfDocumentModel) {
-      pdfDocument.value = args;
-      fetchPdfDetails(args.id);
-    } else if (args is String && args.isNotEmpty) {
+    if (args is String) {
       fetchPdfDetails(args);
-    } else if (args is Map<String, dynamic>) {
-      if (args['pdf'] is PdfDocumentModel) {
-        pdfDocument.value = args['pdf'] as PdfDocumentModel;
-      }
-      final uuid =
-          args['uuid']?.toString() ??
-          args['id']?.toString() ??
-          args['pdf_uuid']?.toString() ??
-          '';
-      if (uuid.isNotEmpty) {
-        fetchPdfDetails(uuid);
-      }
+    } else if (Get.parameters['id'] != null) {
+      fetchPdfDetails(Get.parameters['id']!);
     }
   }
 
@@ -103,6 +91,7 @@ class PdfDetailController extends GetxController {
 
   Future<void> sharePdf() async {
     final pdf = pdfDocument.value;
+
     if (pdf == null || pdf.pdfUrl.isEmpty) {
       CustomSnackBar.showError(
         message: 'PDF document URL is invalid or unavailable',
@@ -111,22 +100,26 @@ class PdfDetailController extends GetxController {
     }
 
     try {
-      final domain = 'https://pbd.nivrajsoftware.in';
       final currentRoute = Get.currentRoute;
-      final deepLink = '$domain$currentRoute?id=${pdf.id}';
+      final deepLink = '${ApiConstants.baseUrl}$currentRoute?id=${pdf.id}';
 
       final message =
           '''
-📄 *${pdf.title}*
-Check out this document!
+    📄 *${pdf.title}*
 
-Link: $deepLink
+    Check out this document!
 
-Sent via *PBD Group Real Estate App* 🏢
-''';
-      await Share.share(message, subject: 'PDF Share');
+    Link: $deepLink
+
+    Sent via *PBD Group Real Estate App* 🏢
+  ''';
+
+      await SharePlus.instance.share(
+        ShareParams(text: message, subject: 'PDF Share'),
+      );
     } catch (e) {
-      printMessage("⚠️ Error sharing PDF: $e");
+      printMessage('⚠️ Error sharing PDF: $e');
+
       CustomSnackBar.showError(message: 'Failed to open share sheet');
     }
   }
