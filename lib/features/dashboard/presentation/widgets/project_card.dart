@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/utils/app_assets.dart';
-import '../../model/real_estate_project_model.dart';
+import '../../../project/model/real_estate_project_model.dart';
 
 class ProjectCard extends StatelessWidget {
   final RealEstateProject project;
@@ -37,9 +37,7 @@ class ProjectCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : Colors.transparent,
+            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
             width: isSelected ? 3.0 : 1.0,
           ),
           boxShadow: [
@@ -64,7 +62,10 @@ class ProjectCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: theme.colorScheme.surfaceContainerHighest,
-                          child: const Icon(AppAssets.icProjectBuilding, size: 40),
+                          child: const Icon(
+                            AppAssets.icProjectBuilding,
+                            size: 40,
+                          ),
                         ),
                       )
                     : Container(
@@ -82,7 +83,9 @@ class ProjectCard extends StatelessWidget {
                           child: Icon(
                             AppAssets.icProjectBuilding,
                             size: 48,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ),
@@ -109,8 +112,10 @@ class ProjectCard extends StatelessWidget {
                 top: 12,
                 left: 12,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(12),
@@ -178,7 +183,9 @@ class ProjectCard extends StatelessWidget {
                           padding: const EdgeInsets.all(6),
                           margin: const EdgeInsets.only(right: 6),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.error.withValues(alpha: 0.8),
+                            color: theme.colorScheme.error.withValues(
+                              alpha: 0.8,
+                            ),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.3),
@@ -252,7 +259,9 @@ class ProjectCard extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
@@ -279,10 +288,13 @@ class ProjectCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary
-                                .withValues(alpha: 0.8),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.8,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(

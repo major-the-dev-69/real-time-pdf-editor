@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.prd.group",
+      "sha256_cert_fingerprints": [
+        "9D:C8:09:EC:4A:00:49:3B:CF:9A:D3:A1:CC:51:56:EE:0B:48:8F:BB:DA:05:BA:B4:FF:51:F5:E0:A0:F5:C8:C7",
+        "65:D0:5C:4A:AB:6B:2B:87:63:32:D2:44:41:73:10:0D:FA:2D:32:84:D5:1D:BB:D7:51:34:C2:09:C5:22:65:5C"
+      ]
+    }
+  }
+]

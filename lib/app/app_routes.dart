@@ -23,6 +23,7 @@ import '../features/profile/binding/profile_binding.dart';
 import '../features/profile/presentation/page/profile_page.dart';
 import '../features/project/binding/project_binding.dart';
 import '../features/project/presentation/page/my_project_list_page.dart';
+import '../features/project/presentation/page/project_details_page.dart';
 import '../features/project/presentation/page/project_form_page.dart';
 import '../features/site/binding/site_binding.dart';
 import '../features/site/presentation/page/site_form_page.dart';
@@ -47,6 +48,7 @@ class AppRoutes {
   static const addProject = '/add-project';
   static const editProject = '/edit-project';
   static const myProjectList = '/my-project-list';
+  static const projectDetails = '/project-details';
   static const siteList = '/site-list';
   static const addSite = '/add-site';
   static const editSite = '/edit-site';
@@ -134,6 +136,13 @@ class AppPages {
     GetPage(
       name: AppRoutes.myProjectList,
       page: () => const MyProjectListPage(),
+      binding: ProjectBinding(),
+      transition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+    GetPage(
+      name: AppRoutes.projectDetails,
+      page: () => const ProjectDetailsPage(),
       binding: ProjectBinding(),
       transition: Transition.cupertino,
       transitionDuration: const Duration(milliseconds: 500),

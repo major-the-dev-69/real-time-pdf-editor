@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/api_services.dart';
 import '../../../../widgets/custom_snack_bar.dart';
-import '../../../dashboard/model/real_estate_project_model.dart';
+import '../../model/real_estate_project_model.dart';
 import '../../model/project_request_model.dart';
 
 class ProjectFormController extends GetxController {

@@ -332,21 +332,9 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: controller.isDownloading.value
-                          ? null
-                          : controller.downloadPdf,
-                      icon: controller.isDownloading.value
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(AppAssets.icDownloadPdf, size: 20),
-                      label: Text(
-                        controller.isDownloading.value
-                            ? 'Downloading...'
-                            : 'Download PDF',
-                      ),
+                      onPressed: controller.copyLink,
+                      icon: const Icon(Icons.copy_rounded, size: 20),
+                      label: const Text('Copy Link'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

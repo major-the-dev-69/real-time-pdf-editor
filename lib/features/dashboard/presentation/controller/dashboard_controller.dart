@@ -6,7 +6,7 @@ import '../../../../core/network/api_services.dart';
 import '../../../../db/shared_pref_manager.dart';
 import '../../../pdf/model/pdf_document_model.dart';
 import '../../../profile/model/user_profile_model.dart';
-import '../../model/real_estate_project_model.dart';
+import '../../../project/model/real_estate_project_model.dart';
 
 class DashboardController extends GetxController {
   final currentIndex = 0.obs;

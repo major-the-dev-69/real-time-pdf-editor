@@ -357,143 +357,144 @@ class DashboardPage extends GetView<DashboardController> {
                   ),
                 ),
 
-                // Filter by Sites Chips Header
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 8, 6),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Filter by Site Name',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${availableSites.length} Sites',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
+                if (availableSites.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 8, 6),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Filter by Site Name',
+                            style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Material(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              clipBehavior: Clip.antiAlias,
-                              child: InkWell(
-                                onTap: () {
-                                  Get.toNamed(AppRoutes.siteList);
-                                },
-                                borderRadius: BorderRadius.circular(8),
-                                splashColor: theme.colorScheme.primary
-                                    .withValues(alpha: 0.15),
-                                highlightColor: theme.colorScheme.primary
-                                    .withValues(alpha: 0.08),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  child: Text(
-                                    'View All',
-                                    style: theme.textTheme.labelMedium
-                                        ?.copyWith(
-                                          color: theme.colorScheme.primary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${availableSites.length} Sites',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (userRole.canCreateProject) ...[
-                              const SizedBox(width: 4),
+                          ),
+                          const Spacer(),
+                          Row(
+                            children: [
                               Material(
                                 color: Colors.transparent,
-                                shape: const CircleBorder(),
+                                borderRadius: BorderRadius.circular(8),
                                 clipBehavior: Clip.antiAlias,
                                 child: InkWell(
                                   onTap: () {
-                                    Get.toNamed(AppRoutes.addSite);
+                                    Get.toNamed(AppRoutes.siteList);
                                   },
-                                  customBorder: const CircleBorder(),
+                                  borderRadius: BorderRadius.circular(8),
                                   splashColor: theme.colorScheme.primary
                                       .withValues(alpha: 0.15),
                                   highlightColor: theme.colorScheme.primary
                                       .withValues(alpha: 0.08),
                                   child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Icon(
-                                      Icons.add_circle_outline_rounded,
-                                      color: theme.colorScheme.primary,
-                                      size: 24,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    child: Text(
+                                      'View All',
+                                      style: theme.textTheme.labelMedium
+                                          ?.copyWith(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                   ),
                                 ),
                               ),
+                              if (userRole.canCreateProject) ...[
+                                const SizedBox(width: 4),
+                                Material(
+                                  color: Colors.transparent,
+                                  shape: const CircleBorder(),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: InkWell(
+                                    onTap: () {
+                                      Get.toNamed(AppRoutes.addSite);
+                                    },
+                                    customBorder: const CircleBorder(),
+                                    splashColor: theme.colorScheme.primary
+                                        .withValues(alpha: 0.15),
+                                    highlightColor: theme.colorScheme.primary
+                                        .withValues(alpha: 0.08),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Icon(
+                                        Icons.add_circle_outline_rounded,
+                                        color: theme.colorScheme.primary,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // Site Filter Chips Row
-                SliverToBoxAdapter(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: availableSites.map((site) {
-                        final isSelected = selectedSiteId == site.id;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: FilterChip(
-                            selected: isSelected,
-                            label: Text(site.name),
-                            onSelected: (selected) =>
-                                controller.selectSite(site.id),
-                            backgroundColor:
-                                theme.colorScheme.surfaceContainerHigh,
-                            selectedColor: theme.colorScheme.primaryContainer,
-                            checkmarkColor: theme.colorScheme.primary,
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurface,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 13,
-                            ),
-                            side: BorderSide(
-                              color: theme.colorScheme.outline.withValues(
-                                alpha: 0.15,
+                  // Site Filter Chips Row
+                  SliverToBoxAdapter(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: availableSites.map((site) {
+                          final isSelected = selectedSiteId == site.id;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: FilterChip(
+                              selected: isSelected,
+                              label: Text(site.name),
+                              onSelected: (selected) =>
+                                  controller.selectSite(site.id),
+                              backgroundColor:
+                                  theme.colorScheme.surfaceContainerHigh,
+                              selectedColor: theme.colorScheme.primaryContainer,
+                              checkmarkColor: theme.colorScheme.primary,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurface,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                fontSize: 13,
+                              ),
+                              side: BorderSide(
+                                color: theme.colorScheme.outline.withValues(
+                                  alpha: 0.15,
+                                ),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
-                ),
+                ],
 
                 // Site PDFs Header
                 SliverToBoxAdapter(

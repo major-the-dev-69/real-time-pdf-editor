@@ -5,8 +5,9 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/enums/user_role.dart';
 import '../../../../core/utils/app_assets.dart';
 import '../../../../db/shared_pref_manager.dart';
-import '../../../dashboard/model/real_estate_project_model.dart';
+import '../../model/real_estate_project_model.dart';
 import '../../../dashboard/presentation/widgets/project_card.dart';
+import '../controller/project_detail_controller.dart';
 import '../controller/project_list_controller.dart';
 
 class MyProjectListPage extends GetView<ProjectListController> {
@@ -92,7 +93,8 @@ class MyProjectListPage extends GetView<ProjectListController> {
             child: ListView.builder(
               controller: controller.scrollController,
               padding: const EdgeInsets.all(20),
-              itemCount: controller.projects.length +
+              itemCount:
+                  controller.projects.length +
                   (controller.isLoadingMore.value ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == controller.projects.length) {
@@ -107,7 +109,10 @@ class MyProjectListPage extends GetView<ProjectListController> {
                   project: project,
                   isVertical: true,
                   onTap: () {
-                    // Navigate or select project
+                    Get.toNamed(
+                      AppRoutes.projectDetails,
+                      arguments: {ProjectArguments.project: project},
+                    );
                   },
                   onEdit: userRole.canEditProject
                       ? () async {
@@ -132,7 +137,10 @@ class MyProjectListPage extends GetView<ProjectListController> {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, RealEstateProject project) {
+  void _showDeleteConfirmation(
+    BuildContext context,
+    RealEstateProject project,
+  ) {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -141,10 +149,7 @@ class MyProjectListPage extends GetView<ProjectListController> {
           'Are you sure you want to delete "${project.title}"? This action cannot be undone.',
         ),
         actions: [
-          TextButton(
-            onPressed: Get.back,
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: Get.back, child: const Text('Cancel')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: context.theme.colorScheme.error,

@@ -1,7 +1,7 @@
-import 'package:dio/dio.dart' as dio;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:path_provider/path_provider.dart';
+
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/network/api_services.dart';
@@ -28,7 +28,8 @@ class PdfDetailController extends GetxController {
       if (args['pdf'] is PdfDocumentModel) {
         pdfDocument.value = args['pdf'] as PdfDocumentModel;
       }
-      final uuid = args['uuid']?.toString() ??
+      final uuid =
+          args['uuid']?.toString() ??
           args['id']?.toString() ??
           args['pdf_uuid']?.toString() ??
           '';
@@ -79,7 +80,7 @@ class PdfDetailController extends GetxController {
     }
   }
 
-  Future<void> sharePdf() async {
+  Future<void> copyLink() async {
     final pdf = pdfDocument.value;
     if (pdf == null || pdf.pdfUrl.isEmpty) {
       CustomSnackBar.showError(
@@ -95,33 +96,38 @@ class PdfDetailController extends GetxController {
         message: 'PDF link copied to clipboard!',
       );
     } catch (e) {
-      printMessage("⚠️ Error sharing PDF link: $e");
-      CustomSnackBar.showError(message: 'Could not share PDF document link');
+      printMessage("⚠️ Error copying PDF link: $e");
+      CustomSnackBar.showError(message: 'Could not copy PDF document link');
     }
   }
 
-  Future<void> downloadPdf() async {
+  Future<void> sharePdf() async {
     final pdf = pdfDocument.value;
-    if (pdf == null || pdf.pdfUrl.isEmpty) return;
-
-    isDownloading.value = true;
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final savePath =
-          '${tempDir.path}/${pdf.title.replaceAll(' ', '_')}.pdf';
-
-      final client = dio.Dio();
-      await client.download(pdf.pdfUrl, savePath);
-
-      CustomSnackBar.showSuccess(
-        title: 'Download Complete',
-        message: 'PDF saved to: $savePath',
+    if (pdf == null || pdf.pdfUrl.isEmpty) {
+      CustomSnackBar.showError(
+        message: 'PDF document URL is invalid or unavailable',
       );
+      return;
+    }
+
+    try {
+      final domain = 'https://pbd.nivrajsoftware.in';
+      final currentRoute = Get.currentRoute;
+      final deepLink = '$domain$currentRoute?id=${pdf.id}';
+
+      final message =
+          '''
+📄 *${pdf.title}*
+Check out this document!
+
+Link: $deepLink
+
+Sent via *PBD Group Real Estate App* 🏢
+''';
+      await Share.share(message, subject: 'PDF Share');
     } catch (e) {
-      printMessage("⚠️ Error downloading PDF: $e");
-      CustomSnackBar.showError(message: 'Failed to download PDF document');
-    } finally {
-      isDownloading.value = false;
+      printMessage("⚠️ Error sharing PDF: $e");
+      CustomSnackBar.showError(message: 'Failed to open share sheet');
     }
   }
 }

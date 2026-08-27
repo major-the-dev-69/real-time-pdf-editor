@@ -9,7 +9,7 @@ import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/api_services.dart';
 import '../../../../widgets/custom_snack_bar.dart';
-import '../../../dashboard/model/real_estate_project_model.dart';
+import '../../../project/model/real_estate_project_model.dart';
 import '../../../site/model/project_site_model.dart';
 import '../../model/pdf_document_model.dart';
 
