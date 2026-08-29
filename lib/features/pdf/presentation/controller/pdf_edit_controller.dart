@@ -91,7 +91,14 @@ class PdfEditController extends GetxController {
   final selectedColor = Rx<Color>(Colors.red);
   final selectedStrokeWidth = 4.0.obs;
   final selectedFontSize = 18.0.obs;
+  final selectedFontWeight = Rx<FontWeight>(FontWeight.normal);
   final selectedCrossSize = 20.0.obs;
+
+  // Text Drag & Selection Tracking
+  final isDraggingText = false.obs;
+  final draggedTextId = ''.obs;
+  final selectedTextAnnotationId = ''.obs;
+  Offset _dragOffsetDelta = Offset.zero;
 
   // Color Palette choices
   final availableColors = [
@@ -267,6 +274,11 @@ class PdfEditController extends GetxController {
                 final col = AnnotationModel.hexToColor(
                   payload['color']?.toString(),
                 );
+                final fontW = AnnotationModel.stringToFontWeight(
+                  payload['fontWeight'] ??
+                      payload['font_weight'] ??
+                      payload['weight'],
+                );
 
                 loadedTexts.add(
                   TextAnnotation(
@@ -275,6 +287,7 @@ class PdfEditController extends GetxController {
                     text: textStr,
                     color: col,
                     fontSize: fontS,
+                    fontWeight: fontW,
                     pageNumber: pageNo,
                   ),
                 );
@@ -425,6 +438,9 @@ class PdfEditController extends GetxController {
       final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
       final fontS = (payload['fontSize'] as num?)?.toDouble() ?? 18.0;
       final col = AnnotationModel.hexToColor(payload['color']?.toString());
+      final fontW = AnnotationModel.stringToFontWeight(
+        payload['fontWeight'] ?? payload['font_weight'] ?? payload['weight'],
+      );
 
       final newText = TextAnnotation(
         id: annotation.id,
@@ -432,6 +448,7 @@ class PdfEditController extends GetxController {
         text: textStr,
         color: col,
         fontSize: fontS,
+        fontWeight: fontW,
         pageNumber: pageNo,
       );
 
@@ -596,6 +613,17 @@ class PdfEditController extends GetxController {
 
   void setColor(Color color) {
     selectedColor.value = color;
+    if (activeMode.value == AnnotationMode.text &&
+        selectedTextAnnotationId.value.isNotEmpty) {
+      final idx = textAnnotations.indexWhere(
+        (t) => t.id == selectedTextAnnotationId.value,
+      );
+      if (idx != -1) {
+        final updated = textAnnotations[idx].copyWith(color: color);
+        textAnnotations[idx] = updated;
+        _saveTextAnnotationUpdate(updated);
+      }
+    }
   }
 
   void setStrokeWidth(double width) {
@@ -604,10 +632,153 @@ class PdfEditController extends GetxController {
 
   void setFontSize(double size) {
     selectedFontSize.value = size;
+    if (selectedTextAnnotationId.value.isNotEmpty) {
+      final idx = textAnnotations.indexWhere(
+        (t) => t.id == selectedTextAnnotationId.value,
+      );
+      if (idx != -1) {
+        final updated = textAnnotations[idx].copyWith(fontSize: size);
+        textAnnotations[idx] = updated;
+        _saveTextAnnotationUpdate(updated);
+      }
+    }
+  }
+
+  void setFontWeight(FontWeight weight) {
+    selectedFontWeight.value = weight;
+    if (selectedTextAnnotationId.value.isNotEmpty) {
+      final idx = textAnnotations.indexWhere(
+        (t) => t.id == selectedTextAnnotationId.value,
+      );
+      if (idx != -1) {
+        final updated = textAnnotations[idx].copyWith(fontWeight: weight);
+        textAnnotations[idx] = updated;
+        _saveTextAnnotationUpdate(updated);
+      }
+    }
   }
 
   void setCrossSize(double size) {
     selectedCrossSize.value = size;
+  }
+
+  // --- TEXT SELECTION & DRAGGING METHODS ---
+
+  void selectTextAnnotation(TextAnnotation textAnn) {
+    selectedTextAnnotationId.value = textAnn.id;
+    selectedFontSize.value = textAnn.fontSize;
+    selectedColor.value = textAnn.color;
+    selectedFontWeight.value = textAnn.fontWeight;
+  }
+
+  void clearSelectedTextAnnotation() {
+    selectedTextAnnotationId.value = '';
+  }
+
+  TextAnnotation? findTextAnnotationAt(
+    Offset localPosition,
+    Size renderSize,
+  ) {
+    final targetPage = currentPage.value;
+    for (int i = textAnnotations.length - 1; i >= 0; i--) {
+      final textAnn = textAnnotations[i];
+      if (textAnn.pageNumber != targetPage && textAnn.pageNumber > 0) continue;
+
+      final pxPt = renderSize != Size.zero
+          ? toPixelPoint(textAnn.position, renderSize)
+          : textAnn.position;
+
+      final painter = TextPainter(
+        text: TextSpan(
+          text: textAnn.text,
+          style: TextStyle(
+            fontSize: textAnn.fontSize,
+            fontWeight: textAnn.fontWeight,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final width = painter.width;
+      final height = painter.height;
+
+      final rect = Rect.fromLTWH(
+        pxPt.dx - 14,
+        pxPt.dy - 14,
+        width + 28,
+        height + 28,
+      );
+
+      if (rect.contains(localPosition)) {
+        return textAnn;
+      }
+    }
+    return null;
+  }
+
+  void startDraggingText(
+    TextAnnotation textAnn,
+    Offset localPosition,
+    Size renderSize,
+  ) {
+    isDraggingText.value = true;
+    draggedTextId.value = textAnn.id;
+    selectTextAnnotation(textAnn);
+
+    final pxPt = renderSize != Size.zero
+        ? toPixelPoint(textAnn.position, renderSize)
+        : textAnn.position;
+
+    _dragOffsetDelta = localPosition - pxPt;
+  }
+
+  void updateDraggingText(Offset localPosition, Size renderSize) {
+    if (!isDraggingText.value || draggedTextId.value.isEmpty) return;
+
+    final targetPixelPos = localPosition - _dragOffsetDelta;
+    final newPctPos = renderSize != Size.zero
+        ? toPercentagePoint(targetPixelPos, renderSize)
+        : targetPixelPos;
+
+    final idx = textAnnotations.indexWhere((t) => t.id == draggedTextId.value);
+    if (idx != -1) {
+      textAnnotations[idx] = textAnnotations[idx].copyWith(position: newPctPos);
+    }
+  }
+
+  Future<void> endDraggingText() async {
+    if (!isDraggingText.value) return;
+    final currentDraggedId = draggedTextId.value;
+    isDraggingText.value = false;
+    draggedTextId.value = '';
+
+    if (currentDraggedId.isNotEmpty) {
+      final idx = textAnnotations.indexWhere((t) => t.id == currentDraggedId);
+      if (idx != -1) {
+        final textAnn = textAnnotations[idx];
+        await _saveTextAnnotationUpdate(textAnn);
+      }
+    }
+  }
+
+  Future<void> _saveTextAnnotationUpdate(TextAnnotation textAnn) async {
+    if (textAnn.id.isEmpty) return;
+    final payload = AnnotationModel.createTextPayload(
+      textAnn.text,
+      textAnn.position,
+      textAnn.fontSize,
+      textAnn.color,
+      fontWeight: textAnn.fontWeight,
+    );
+    final model = AnnotationModel(
+      id: textAnn.id,
+      pdfId: pdfDocument.value?.id ?? '',
+      pageNumber: textAnn.pageNumber,
+      type: 'text',
+      scale: zoomScale.value,
+      payload: payload,
+    );
+    await updateAnnotationApi(textAnn.id, model);
   }
 
   // --- DRAWING GESTURE HANDLERS ---
@@ -683,6 +854,7 @@ class PdfEditController extends GetxController {
     String text,
     Offset position, [
     Size renderSize = Size.zero,
+    FontWeight? fontWeight,
   ]) async {
     if (text.trim().isEmpty) return;
 
@@ -690,6 +862,7 @@ class PdfEditController extends GetxController {
         ? toPercentagePoint(position, renderSize)
         : position;
 
+    final effectiveWeight = fontWeight ?? selectedFontWeight.value;
     final tempId = DateTime.now().millisecondsSinceEpoch.toString();
     final textAnn = TextAnnotation(
       id: tempId,
@@ -697,6 +870,7 @@ class PdfEditController extends GetxController {
       text: text,
       color: selectedColor.value,
       fontSize: selectedFontSize.value,
+      fontWeight: effectiveWeight,
       pageNumber: currentPage.value,
     );
 
@@ -707,6 +881,7 @@ class PdfEditController extends GetxController {
       pctPoint,
       selectedFontSize.value,
       selectedColor.value,
+      fontWeight: effectiveWeight,
     );
     final model = AnnotationModel(
       id: '',

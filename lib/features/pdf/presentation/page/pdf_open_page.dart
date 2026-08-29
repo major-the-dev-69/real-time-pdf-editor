@@ -261,27 +261,68 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                                     return GestureDetector(
                                       behavior: HitTestBehavior.opaque,
                                       onPanStart: (details) {
+                                        if (mode == AnnotationMode.text) {
+                                          final hitText = controller
+                                              .findTextAnnotationAt(
+                                                details.localPosition,
+                                                renderSize,
+                                              );
+                                          if (hitText != null) {
+                                            controller.startDraggingText(
+                                              hitText,
+                                              details.localPosition,
+                                              renderSize,
+                                            );
+                                            return;
+                                          }
+                                        }
                                         controller.startLine(
                                           details.localPosition,
                                           renderSize,
                                         );
                                       },
                                       onPanUpdate: (details) {
+                                        if (mode == AnnotationMode.text &&
+                                            controller.isDraggingText.value) {
+                                          controller.updateDraggingText(
+                                            details.localPosition,
+                                            renderSize,
+                                          );
+                                          return;
+                                        }
                                         controller.updateLine(
                                           details.localPosition,
                                           renderSize,
                                         );
                                       },
                                       onPanEnd: (details) {
+                                        if (mode == AnnotationMode.text &&
+                                            controller.isDraggingText.value) {
+                                          controller.endDraggingText();
+                                          return;
+                                        }
                                         controller.endLine();
                                       },
                                       onTapUp: (details) {
                                         if (mode == AnnotationMode.text) {
-                                          _showAddTextDialog(
-                                            context,
-                                            details.localPosition,
-                                            renderSize,
-                                          );
+                                          final hitText = controller
+                                              .findTextAnnotationAt(
+                                                details.localPosition,
+                                                renderSize,
+                                              );
+                                          if (hitText != null) {
+                                            controller.selectTextAnnotation(
+                                              hitText,
+                                            );
+                                          } else {
+                                            controller
+                                                .clearSelectedTextAnnotation();
+                                            _showAddTextDialog(
+                                              context,
+                                              details.localPosition,
+                                              renderSize,
+                                            );
+                                          }
                                         } else if (mode ==
                                             AnnotationMode.cross) {
                                           controller.addCrossAnnotation(
@@ -311,6 +352,11 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                                             currentPage:
                                                 controller.currentPage.value,
                                             scale: controller.zoomScale.value,
+                                            selectedTextId: controller
+                                                .selectedTextAnnotationId
+                                                .value,
+                                            draggedTextId:
+                                                controller.draggedTextId.value,
                                           ),
                                           child: const SizedBox.expand(),
                                         );
@@ -753,7 +799,6 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Color Selection Palette Row
           if (mode == AnnotationMode.draw || mode == AnnotationMode.text) ...[
             Row(
               children: [
@@ -819,89 +864,284 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
             ),
           ],
 
-          // Stroke Width Slider (for Drawing mode)
-          if (mode == AnnotationMode.draw)
-            Row(
-              children: [
-                Text(
-                  'Stroke Width:',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+          if (mode == AnnotationMode.draw) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.35,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.4,
                   ),
                 ),
-                Expanded(
-                  child: Obx(
-                    () => Slider(
-                      value: controller.selectedStrokeWidth.value,
-                      min: 1.0,
-                      max: 20.0,
-                      divisions: 19,
-                      label:
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Stroke Width',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Obx(
+                        () => Text(
                           '${controller.selectedStrokeWidth.value.toInt()} px',
-                      onChanged: controller.setStrokeWidth,
-                    ),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Obx(
-                  () => Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: controller.selectedStrokeWidth.value.clamp(
-                        2.0,
-                        20.0,
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Obx(
+                          () => Slider(
+                            value: controller.selectedStrokeWidth.value,
+                            min: 1.0,
+                            max: 20.0,
+                            divisions: 19,
+                            label:
+                                '${controller.selectedStrokeWidth.value.toInt()} px',
+                            onChanged: controller.setStrokeWidth,
+                          ),
+                        ),
                       ),
-                      height: controller.selectedStrokeWidth.value.clamp(
-                        2.0,
-                        20.0,
+                      const SizedBox(width: 8),
+                      Obx(
+                        () => Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHigh,
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: controller.selectedStrokeWidth.value.clamp(
+                              2.0,
+                              20.0,
+                            ),
+                            height: controller.selectedStrokeWidth.value.clamp(
+                              2.0,
+                              20.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: controller.selectedColor.value,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: controller.selectedColor.value,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+          ],
 
-          // Font Size Slider (for Text mode)
-          if (mode == AnnotationMode.text)
+          if (mode == AnnotationMode.text) ...[
+            const SizedBox(height: 4),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Font Size:',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
                 Expanded(
-                  child: Obx(
-                    () => Slider(
-                      value: controller.selectedFontSize.value,
-                      min: 12.0,
-                      max: 40.0,
-                      divisions: 28,
-                      label: '${controller.selectedFontSize.value.toInt()} pt',
-                      onChanged: controller.setFontSize,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Font Size',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Obx(
+                              () => Text(
+                                '${controller.selectedFontSize.value.toInt()} pt',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Obx(
+                          () => Slider(
+                            padding: EdgeInsets.zero,
+                            value: controller.selectedFontSize.value,
+                            min: 10.0,
+                            max: 48.0,
+                            divisions: 38,
+                            label:
+                                '${controller.selectedFontSize.value.toInt()} pt',
+                            onChanged: controller.setFontSize,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                Obx(
-                  () => Text(
-                    '${controller.selectedFontSize.value.toInt()} pt',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                const SizedBox(width: 10),
+                // Thickness / Font Weight Column
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Thickness',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Obx(
+                              () => Text(
+                                _getFontWeightName(
+                                  controller.selectedFontWeight.value,
+                                ),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Obx(
+                          () => Slider(
+                            padding: EdgeInsets.zero,
+                            value: _fontWeightToSliderValue(
+                              controller.selectedFontWeight.value,
+                            ),
+                            min: 1.0,
+                            max: 9.0,
+                            divisions: 8,
+                            label: _getFontWeightName(
+                              controller.selectedFontWeight.value,
+                            ),
+                            onChanged: (val) => controller.setFontWeight(
+                              _sliderValueToFontWeight(val),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 6),
+            Obx(() {
+              final isSelected =
+                  controller.selectedTextAnnotationId.value.isNotEmpty;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isSelected
+                        ? Icons.touch_app_rounded
+                        : Icons.open_with_rounded,
+                    size: 14,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      isSelected
+                          ? 'Drag selected text to reposition or adjust style'
+                          : 'Tap to add text or drag existing text to move',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
+                        fontSize: 11,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (isSelected) ...[
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => controller.clearSelectedTextAnnotation(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        child: Text(
+                          'Deselect',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.error,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            }),
+          ],
 
           if (mode == AnnotationMode.erase)
             Padding(
@@ -1168,6 +1408,82 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
         return 'View Mode Active';
       case AnnotationMode.cross:
         return "Cross Mode Active: Tap canvas to place cross marker";
+    }
+  }
+
+  String _getFontWeightName(FontWeight weight) {
+    switch (weight) {
+      case FontWeight.w100:
+        return 'Thin';
+      case FontWeight.w200:
+        return 'Extra Light';
+      case FontWeight.w300:
+        return 'Light';
+      case FontWeight.w400:
+        return 'Regular';
+      case FontWeight.w500:
+        return 'Medium';
+      case FontWeight.w600:
+        return 'Semi Bold';
+      case FontWeight.w700:
+        return 'Bold';
+      case FontWeight.w800:
+        return 'Extra Bold';
+      case FontWeight.w900:
+        return 'Black';
+      default:
+        return 'Regular';
+    }
+  }
+
+  double _fontWeightToSliderValue(FontWeight weight) {
+    switch (weight) {
+      case FontWeight.w100:
+        return 1.0;
+      case FontWeight.w200:
+        return 2.0;
+      case FontWeight.w300:
+        return 3.0;
+      case FontWeight.w400:
+        return 4.0;
+      case FontWeight.w500:
+        return 5.0;
+      case FontWeight.w600:
+        return 6.0;
+      case FontWeight.w700:
+        return 7.0;
+      case FontWeight.w800:
+        return 8.0;
+      case FontWeight.w900:
+        return 9.0;
+      default:
+        return 4.0;
+    }
+  }
+
+  FontWeight _sliderValueToFontWeight(double value) {
+    final val = value.round();
+    switch (val) {
+      case 1:
+        return FontWeight.w100;
+      case 2:
+        return FontWeight.w200;
+      case 3:
+        return FontWeight.w300;
+      case 4:
+        return FontWeight.w400;
+      case 5:
+        return FontWeight.w500;
+      case 6:
+        return FontWeight.w600;
+      case 7:
+        return FontWeight.w700;
+      case 8:
+        return FontWeight.w800;
+      case 9:
+        return FontWeight.w900;
+      default:
+        return FontWeight.w400;
     }
   }
 }

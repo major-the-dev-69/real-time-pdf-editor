@@ -111,18 +111,95 @@ class AnnotationModel {
     double strokeWidth,
   ) => createDrawPayload(points, color, strokeWidth);
 
+  static String fontWeightToString(FontWeight? weight) {
+    if (weight == null) return 'normal';
+    switch (weight) {
+      case FontWeight.w100:
+        return '100';
+      case FontWeight.w200:
+        return '200';
+      case FontWeight.w300:
+        return '300';
+      case FontWeight.w400:
+        return '400';
+      case FontWeight.w500:
+        return '500';
+      case FontWeight.w600:
+        return '600';
+      case FontWeight.w700:
+        return '700';
+      case FontWeight.w800:
+        return '800';
+      case FontWeight.w900:
+        return '900';
+      default:
+        return '400';
+    }
+  }
+
+  static FontWeight stringToFontWeight(dynamic val) {
+    if (val == null) return FontWeight.normal;
+    final str = val.toString().toLowerCase().trim();
+    if (str == 'bold' || str == '700' || str.contains('w700')) {
+      return FontWeight.bold;
+    }
+    if (str == 'normal' ||
+        str == '400' ||
+        str.contains('w400') ||
+        str == 'regular') {
+      return FontWeight.normal;
+    }
+    if (str == '100' || str.contains('w100') || str == 'thin') {
+      return FontWeight.w100;
+    }
+    if (str == '200' || str.contains('w200') || str == 'extralight') {
+      return FontWeight.w200;
+    }
+    if (str == '300' || str.contains('w300') || str == 'light') {
+      return FontWeight.w300;
+    }
+    if (str == '500' || str.contains('w500') || str == 'medium') {
+      return FontWeight.w500;
+    }
+    if (str == '600' || str.contains('w600') || str == 'semibold') {
+      return FontWeight.w600;
+    }
+    if (str == '800' || str.contains('w800') || str == 'extrabold') {
+      return FontWeight.w800;
+    }
+    if (str == '900' || str.contains('w900') || str == 'black') {
+      return FontWeight.w900;
+    }
+
+    final numVal = int.tryParse(str);
+    if (numVal != null) {
+      if (numVal <= 150) return FontWeight.w100;
+      if (numVal <= 250) return FontWeight.w200;
+      if (numVal <= 350) return FontWeight.w300;
+      if (numVal <= 450) return FontWeight.w400;
+      if (numVal <= 550) return FontWeight.w500;
+      if (numVal <= 650) return FontWeight.w600;
+      if (numVal <= 750) return FontWeight.w700;
+      if (numVal <= 850) return FontWeight.w800;
+      return FontWeight.w900;
+    }
+    return FontWeight.normal;
+  }
+
   static Map<String, dynamic> createTextPayload(
     String text,
     Offset position,
     double fontSize,
-    Color color,
-  ) {
+    Color color, {
+    FontWeight fontWeight = FontWeight.normal,
+  }) {
     return {
       'text': text,
       'x': double.parse(position.dx.toStringAsFixed(2)),
       'y': double.parse(position.dy.toStringAsFixed(2)),
       'fontSize': fontSize.roundToDouble(),
       'color': colorToHex(color),
+      'fontWeight': fontWeightToString(fontWeight),
     };
   }
 

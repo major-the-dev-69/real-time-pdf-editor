@@ -38,6 +38,7 @@ class TextAnnotation {
   final String text;
   final Color color;
   final double fontSize;
+  final FontWeight fontWeight;
   final int pageNumber;
 
   const TextAnnotation({
@@ -46,7 +47,8 @@ class TextAnnotation {
     required this.text,
     required this.color,
     required this.fontSize,
-    this.pageNumber = 1,
+    this.fontWeight = FontWeight.normal,
+    required this.pageNumber,
   });
 
   TextAnnotation copyWith({
@@ -55,6 +57,7 @@ class TextAnnotation {
     String? text,
     Color? color,
     double? fontSize,
+    FontWeight? fontWeight,
     int? pageNumber,
   }) {
     return TextAnnotation(
@@ -63,6 +66,7 @@ class TextAnnotation {
       text: text ?? this.text,
       color: color ?? this.color,
       fontSize: fontSize ?? this.fontSize,
+      fontWeight: fontWeight ?? this.fontWeight,
       pageNumber: pageNumber ?? this.pageNumber,
     );
   }
@@ -107,6 +111,8 @@ class AnnotationPainter extends CustomPainter {
   final List<CrossAnnotation> crossAnnotations;
   final int currentPage;
   final double scale;
+  final String? selectedTextId;
+  final String? draggedTextId;
 
   const AnnotationPainter({
     required this.lines,
@@ -115,6 +121,8 @@ class AnnotationPainter extends CustomPainter {
     this.crossAnnotations = const [],
     this.currentPage = 1,
     this.scale = 1.0,
+    this.selectedTextId,
+    this.draggedTextId,
   });
 
   Offset _toPixelOffset(Offset pt, Size size) {
@@ -142,7 +150,8 @@ class AnnotationPainter extends CustomPainter {
 
     // 2. Paint Active Current Line (if matching current page)
     if (currentLine != null) {
-      if (currentLine!.pageNumber == currentPage || currentLine!.pageNumber <= 0) {
+      if (currentLine!.pageNumber == currentPage ||
+          currentLine!.pageNumber <= 0) {
         _drawLine(canvas, currentLine!, size);
       }
     }
@@ -172,7 +181,9 @@ class AnnotationPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
 
-    final pixelPoints = line.points.map((pt) => _toPixelOffset(pt, size)).toList();
+    final pixelPoints = line.points
+        .map((pt) => _toPixelOffset(pt, size))
+        .toList();
 
     if (pixelPoints.length == 1) {
       canvas.drawCircle(pixelPoints.first, line.strokeWidth / 2, paint);
@@ -189,23 +200,24 @@ class AnnotationPainter extends CustomPainter {
 
   void _drawText(Canvas canvas, TextAnnotation annotation, Size size) {
     final pos = _toPixelOffset(annotation.position, size);
+    final isSelected =
+        (selectedTextId != null &&
+            selectedTextId!.isNotEmpty &&
+            selectedTextId == annotation.id) ||
+        (draggedTextId != null &&
+            draggedTextId!.isNotEmpty &&
+            draggedTextId == annotation.id);
+
     final textStyle = TextStyle(
       color: annotation.color,
       fontSize: annotation.fontSize,
-      fontWeight: FontWeight.bold,
+      fontWeight: annotation.fontWeight,
       shadows: const [
-        Shadow(
-          blurRadius: 2.0,
-          color: Colors.black38,
-          offset: Offset(1, 1),
-        ),
+        Shadow(blurRadius: 2.0, color: Colors.black38, offset: Offset(1, 1)),
       ],
     );
 
-    final textSpan = TextSpan(
-      text: annotation.text,
-      style: textStyle,
-    );
+    final textSpan = TextSpan(text: annotation.text, style: textStyle);
 
     final textPainter = TextPainter(
       text: textSpan,
@@ -213,6 +225,35 @@ class AnnotationPainter extends CustomPainter {
     );
 
     textPainter.layout();
+
+    if (isSelected) {
+      final rect = Rect.fromLTWH(
+        pos.dx - 6,
+        pos.dy - 3,
+        textPainter.width + 12,
+        textPainter.height + 6,
+      );
+
+      // Background highlight
+      final bgPaint = Paint()
+        ..color = annotation.color.withValues(alpha: 0.15)
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(6)),
+        bgPaint,
+      );
+
+      // Border highlight
+      final borderPaint = Paint()
+        ..color = annotation.color.withValues(alpha: 0.8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(6)),
+        borderPaint,
+      );
+    }
+
     textPainter.paint(canvas, pos);
   }
 
