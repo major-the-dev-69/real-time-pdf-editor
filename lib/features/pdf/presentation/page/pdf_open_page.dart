@@ -89,6 +89,11 @@ class _PdfOpenPageState extends State<PdfOpenPage>
     _doubleTapAnimationController.forward(from: 0.0);
   }
 
+  String _formatDecimalVal(double val, String unit) {
+    final str = val % 1 == 0 ? val.toInt().toString() : val.toStringAsFixed(1);
+    return '$str $unit';
+  }
+
   @override
   void dispose() {
     _doubleTapAnimationController.dispose();
@@ -913,7 +918,10 @@ class _PdfOpenPageState extends State<PdfOpenPage>
                       ),
                       Obx(
                         () => Text(
-                          '${controller.selectedStrokeWidth.value.toInt()} px',
+                          _formatDecimalVal(
+                            controller.selectedStrokeWidth.value,
+                            'px',
+                          ),
                           style: theme.textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.colorScheme.primary,
@@ -931,9 +939,11 @@ class _PdfOpenPageState extends State<PdfOpenPage>
                             value: controller.selectedStrokeWidth.value,
                             min: 1.0,
                             max: 20.0,
-                            divisions: 19,
-                            label:
-                                '${controller.selectedStrokeWidth.value.toInt()} px',
+                            divisions: 190,
+                            label: _formatDecimalVal(
+                              controller.selectedStrokeWidth.value,
+                              'px',
+                            ),
                             onChanged: controller.setStrokeWidth,
                           ),
                         ),
@@ -1007,7 +1017,10 @@ class _PdfOpenPageState extends State<PdfOpenPage>
                             ),
                             Obx(
                               () => Text(
-                                '${controller.selectedFontSize.value.toInt()} pt',
+                                _formatDecimalVal(
+                                  controller.selectedFontSize.value,
+                                  'pt',
+                                ),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: theme.colorScheme.primary,
@@ -1023,9 +1036,11 @@ class _PdfOpenPageState extends State<PdfOpenPage>
                             value: controller.selectedFontSize.value,
                             min: 10.0,
                             max: 48.0,
-                            divisions: 38,
-                            label:
-                                '${controller.selectedFontSize.value.toInt()} pt',
+                            divisions: 380,
+                            label: _formatDecimalVal(
+                              controller.selectedFontSize.value,
+                              'pt',
+                            ),
                             onChanged: controller.setFontSize,
                           ),
                         ),

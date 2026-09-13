@@ -627,17 +627,18 @@ class PdfEditController extends GetxController {
   }
 
   void setStrokeWidth(double width) {
-    selectedStrokeWidth.value = width;
+    selectedStrokeWidth.value = double.parse(width.toStringAsFixed(1));
   }
 
   void setFontSize(double size) {
-    selectedFontSize.value = size;
+    final formattedSize = double.parse(size.toStringAsFixed(1));
+    selectedFontSize.value = formattedSize;
     if (selectedTextAnnotationId.value.isNotEmpty) {
       final idx = textAnnotations.indexWhere(
         (t) => t.id == selectedTextAnnotationId.value,
       );
       if (idx != -1) {
-        final updated = textAnnotations[idx].copyWith(fontSize: size);
+        final updated = textAnnotations[idx].copyWith(fontSize: formattedSize);
         textAnnotations[idx] = updated;
         _saveTextAnnotationUpdate(updated);
       }
