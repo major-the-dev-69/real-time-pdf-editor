@@ -226,35 +226,36 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              if (pdf.description.isNotEmpty) ...[
+                const SizedBox(height: 24),
 
-              // Overview Description Section
-              Text(
-                'Description & Notes',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.cardTheme.color,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                ),
-                child: Text(
-                  pdf.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                    height: 1.5,
+                // Overview Description Section
+                Text(
+                  'Description & Notes',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.cardTheme.color,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: theme.colorScheme.outlineVariant),
+                  ),
+                  child: Text(
+                    pdf.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 32),
-
               // Open & Edit PDF Button
               SizedBox(
                 width: double.infinity,

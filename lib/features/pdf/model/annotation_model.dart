@@ -28,6 +28,8 @@ class AnnotationModel {
       parsedPayload = rawPayload;
     } else if (rawPayload is Map) {
       parsedPayload = Map<String, dynamic>.from(rawPayload);
+    } else {
+      parsedPayload = Map<String, dynamic>.from(json);
     }
 
     final rawUndone = json['is_undone'] ?? json['isUndone'];

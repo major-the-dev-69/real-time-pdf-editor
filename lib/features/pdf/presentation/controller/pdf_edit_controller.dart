@@ -31,7 +31,7 @@ class PdfEditController extends GetxController {
   final zoomScale = 1.0.obs;
 
   void zoomIn() {
-    if (zoomScale.value < 4.0) {
+    if (zoomScale.value < 50.0) {
       zoomScale.value = double.parse(
         (zoomScale.value + 0.25).toStringAsFixed(2),
       );
@@ -331,27 +331,38 @@ class PdfEditController extends GetxController {
   Future<void> setupRealtimePusher(String pdfUuid) async {
     if (pdfUuid.isEmpty) return;
 
-    if (currentPusherChannel.isNotEmpty && Get.isRegistered<PusherService>()) {
-      await Get.find<PusherService>().unsubscribeFromChannel(
+    final pusher = Get.isRegistered<PusherService>()
+        ? Get.find<PusherService>()
+        : null;
+    if (pusher == null) return;
+
+    if (currentPusherChannel.isNotEmpty) {
+      await pusher.unsubscribeFromChannel(
         currentPusherChannel,
+        _handlePusherEvent,
+      );
+      await pusher.unsubscribeFromChannel(
+        'private-$currentPusherChannel',
         _handlePusherEvent,
       );
     }
 
     currentPusherChannel = 'pdf.$pdfUuid';
-    if (Get.isRegistered<PusherService>()) {
-      await Get.find<PusherService>().subscribeToChannel(
-        currentPusherChannel,
-        _handlePusherEvent,
-      );
-    }
+    printMessage(
+      "📡 Setting up Pusher subscription for channels: pdf.$pdfUuid & private-pdf.$pdfUuid",
+    );
+    await pusher.subscribeToChannel('pdf.$pdfUuid', _handlePusherEvent);
+    await pusher.subscribeToChannel('private-pdf.$pdfUuid', _handlePusherEvent);
   }
 
   void _handlePusherEvent(PusherEvent event) {
     try {
       printMessage(
-        "📡 Handling Pusher Event in PdfEditController: ${event.eventName}",
+        "📡 Handling Pusher Event in PdfEditController: [${event.channelName}] ${event.eventName}",
       );
+
+      if (event.eventName.startsWith('pusher:')) return;
+
       dynamic data = event.data;
       if (data is String) {
         try {
@@ -361,44 +372,99 @@ class PdfEditController extends GetxController {
 
       final eventName = event.eventName.toLowerCase();
 
-      if (eventName.contains('created') || eventName.contains('added')) {
-        final annData = (data is Map && data.containsKey('annotation'))
-            ? data['annotation']
-            : data;
-        if (annData is Map<String, dynamic>) {
+      final isCreate =
+          eventName.contains('created') ||
+          eventName.contains('added') ||
+          eventName.contains('create') ||
+          eventName.contains('add') ||
+          eventName.contains('saved') ||
+          eventName.contains('store');
+
+      final isUpdate =
+          eventName.contains('updated') ||
+          eventName.contains('update') ||
+          eventName.contains('edit') ||
+          eventName.contains('modify');
+
+      final isDelete =
+          eventName.contains('deleted') ||
+          eventName.contains('delete') ||
+          eventName.contains('removed') ||
+          eventName.contains('remove') ||
+          eventName.contains('destroy') ||
+          eventName.contains('undo');
+
+      final isClear =
+          eventName.contains('clear') ||
+          eventName.contains('wipe') ||
+          eventName.contains('reset');
+
+      if (isCreate || isUpdate) {
+        final annData = _extractAnnotationData(data);
+        if (annData != null) {
           _addOrUpdateSingleAnnotation(AnnotationModel.fromJson(annData));
         }
-      } else if (eventName.contains('updated')) {
-        final annData = (data is Map && data.containsKey('annotation'))
-            ? data['annotation']
-            : data;
-        if (annData is Map<String, dynamic>) {
-          _addOrUpdateSingleAnnotation(AnnotationModel.fromJson(annData));
-        }
-      } else if (eventName.contains('deleted') ||
-          eventName.contains('removed')) {
+      } else if (isDelete) {
         final targetId = (data is Map)
             ? (data['uuid']?.toString() ??
                   data['id']?.toString() ??
                   data['annotation_id']?.toString() ??
+                  data['annotation_uuid']?.toString() ??
                   '')
             : '';
         if (targetId.isNotEmpty) {
           lines.removeWhere((l) => l.id == targetId);
           textAnnotations.removeWhere((t) => t.id == targetId);
           crossAnnotations.removeWhere((c) => c.id == targetId);
+          lines.refresh();
+          textAnnotations.refresh();
+          crossAnnotations.refresh();
         }
-      } else if (eventName.contains('clear')) {
+      } else if (isClear) {
         final pageNo = (data is Map)
             ? ((data['page_number'] as num?)?.toInt() ?? 1)
             : 1;
         lines.removeWhere((l) => l.pageNumber == pageNo);
         textAnnotations.removeWhere((t) => t.pageNumber == pageNo);
         crossAnnotations.removeWhere((c) => c.pageNumber == pageNo);
+        lines.refresh();
+        textAnnotations.refresh();
+        crossAnnotations.refresh();
+      } else {
+        final annData = _extractAnnotationData(data);
+        if (annData != null &&
+            (annData.containsKey('type') ||
+                annData.containsKey('uuid') ||
+                annData.containsKey('id') ||
+                annData.containsKey('payload'))) {
+          _addOrUpdateSingleAnnotation(AnnotationModel.fromJson(annData));
+        }
       }
     } catch (e) {
       printMessage("⚠️ Error handling Pusher event in PdfEditController: $e");
     }
+  }
+
+  Map<String, dynamic>? _extractAnnotationData(dynamic data) {
+    if (data is! Map) return null;
+    final map = Map<String, dynamic>.from(data);
+
+    if (map.containsKey('annotation') && map['annotation'] is Map) {
+      return Map<String, dynamic>.from(map['annotation']);
+    }
+    if (map.containsKey('data') && map['data'] is Map) {
+      final inner = Map<String, dynamic>.from(map['data']);
+      if (inner.containsKey('annotation') && inner['annotation'] is Map) {
+        return Map<String, dynamic>.from(inner['annotation']);
+      }
+      return inner;
+    }
+    if (map.containsKey('payload') &&
+        map['payload'] is Map &&
+        (map['payload'] as Map).containsKey('type')) {
+      return Map<String, dynamic>.from(map['payload']);
+    }
+    return map;
   }
 
   void _addOrUpdateSingleAnnotation(AnnotationModel annotation) {
@@ -406,17 +472,33 @@ class PdfEditController extends GetxController {
     final payload = annotation.payload;
 
     if (annotation.type == 'pencil' || annotation.type == 'draw') {
-      final pointsRaw = payload['points'];
+      final pointsRaw =
+          payload['points'] ?? payload['path'] ?? payload['points_list'];
       List<Offset> points = [];
       if (pointsRaw is List) {
         points = pointsRaw.map((pt) {
-          final x = (pt['x'] as num?)?.toDouble() ?? 0.0;
-          final y = (pt['y'] as num?)?.toDouble() ?? 0.0;
-          return Offset(x, y);
+          if (pt is Map) {
+            final x = (pt['x'] as num?)?.toDouble() ?? 0.0;
+            final y = (pt['y'] as num?)?.toDouble() ?? 0.0;
+            return Offset(x, y);
+          } else if (pt is List && pt.length >= 2) {
+            final x = (pt[0] as num?)?.toDouble() ?? 0.0;
+            final y = (pt[1] as num?)?.toDouble() ?? 0.0;
+            return Offset(x, y);
+          }
+          return Offset.zero;
         }).toList();
       }
-      final strokeW = (payload['strokeWidth'] as num?)?.toDouble() ?? 3.0;
-      final col = AnnotationModel.hexToColor(payload['color']?.toString());
+      final strokeW =
+          (payload['strokeWidth'] ??
+                  payload['stroke_width'] ??
+                  payload['width'] as num?)
+              ?.toDouble() ??
+          3.0;
+      final col = AnnotationModel.hexToColor(
+        (payload['color'] ?? payload['hex'] ?? payload['stroke_color'])
+            ?.toString(),
+      );
 
       final newLine = DrawnLine(
         id: annotation.id,
@@ -426,18 +508,32 @@ class PdfEditController extends GetxController {
         pageNumber: pageNo,
       );
 
-      final idx = lines.indexWhere((l) => l.id == annotation.id);
+      final idx = lines.indexWhere(
+        (l) => l.id.isNotEmpty && l.id == annotation.id,
+      );
       if (idx != -1) {
         lines[idx] = newLine;
       } else {
         lines.add(newLine);
       }
+      lines.refresh();
     } else if (annotation.type == 'text') {
-      final textStr = payload['text']?.toString() ?? '';
+      final textStr =
+          (payload['text'] ?? payload['content'] ?? payload['value'])
+              ?.toString() ??
+          '';
       final x = (payload['x'] as num?)?.toDouble() ?? 0.0;
       final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
-      final fontS = (payload['fontSize'] as num?)?.toDouble() ?? 18.0;
-      final col = AnnotationModel.hexToColor(payload['color']?.toString());
+      final fontS =
+          (payload['fontSize'] ??
+                  payload['font_size'] ??
+                  payload['size'] as num?)
+              ?.toDouble() ??
+          18.0;
+      final col = AnnotationModel.hexToColor(
+        (payload['color'] ?? payload['hex'] ?? payload['font_color'])
+            ?.toString(),
+      );
       final fontW = AnnotationModel.stringToFontWeight(
         payload['fontWeight'] ?? payload['font_weight'] ?? payload['weight'],
       );
@@ -452,32 +548,45 @@ class PdfEditController extends GetxController {
         pageNumber: pageNo,
       );
 
-      final idx = textAnnotations.indexWhere((t) => t.id == annotation.id);
+      final idx = textAnnotations.indexWhere(
+        (t) => t.id.isNotEmpty && t.id == annotation.id,
+      );
       if (idx != -1) {
         textAnnotations[idx] = newText;
       } else {
         textAnnotations.add(newText);
       }
+      textAnnotations.refresh();
     } else if (annotation.type == 'cross') {
       final x = (payload['x'] as num?)?.toDouble() ?? 0.0;
       final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
-      final sizeVal = (payload['size'] as num?)?.toDouble() ?? 20.0;
-      final col = AnnotationModel.hexToColor(payload['color']?.toString());
+      final sz =
+          (payload['size'] ??
+                  payload['crossSize'] ??
+                  payload['cross_size'] as num?)
+              ?.toDouble() ??
+          24.0;
+      final col = AnnotationModel.hexToColor(
+        (payload['color'] ?? payload['hex'])?.toString(),
+      );
 
       final newCross = CrossAnnotation(
         id: annotation.id,
         position: Offset(x, y),
-        size: sizeVal,
+        size: sz,
         color: col,
         pageNumber: pageNo,
       );
 
-      final idx = crossAnnotations.indexWhere((c) => c.id == annotation.id);
+      final idx = crossAnnotations.indexWhere(
+        (c) => c.id.isNotEmpty && c.id == annotation.id,
+      );
       if (idx != -1) {
         crossAnnotations[idx] = newCross;
       } else {
         crossAnnotations.add(newCross);
       }
+      crossAnnotations.refresh();
     }
   }
 
@@ -676,10 +785,7 @@ class PdfEditController extends GetxController {
     selectedTextAnnotationId.value = '';
   }
 
-  TextAnnotation? findTextAnnotationAt(
-    Offset localPosition,
-    Size renderSize,
-  ) {
+  TextAnnotation? findTextAnnotationAt(Offset localPosition, Size renderSize) {
     final targetPage = currentPage.value;
     for (int i = textAnnotations.length - 1; i >= 0; i--) {
       final textAnn = textAnnotations[i];

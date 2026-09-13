@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart';
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
@@ -59,9 +60,16 @@ class PusherService extends GetxService {
         ),
       );
 
-      return response.data;
+      dynamic authData = response.data;
+      if (authData is String) {
+        try {
+          authData = jsonDecode(authData);
+        } catch (_) {}
+      }
+      printMessage("🔑 Pusher Auth Response received for $channelName");
+      return authData;
     } catch (e) {
-      printMessage("⚠️ Pusher Auth Error: $e");
+      printMessage("⚠️ Pusher Auth Error for $channelName: $e");
       return null;
     }
   }
@@ -92,16 +100,21 @@ class PusherService extends GetxService {
     printMessage(
       "📡 Pusher Event Received [${event.channelName}] -> ${event.eventName}: ${event.data}",
     );
-    final listeners = _channelListeners[event.channelName];
-    if (listeners != null && listeners.isNotEmpty) {
-      for (final callback in List<Function(PusherEvent)>.from(listeners)) {
-        try {
-          callback(event);
-        } catch (e) {
-          printMessage("⚠️ Error in Pusher Event Listener: $e");
+
+    final normalizedEventChannel = event.channelName.replaceAll(RegExp(r'^(private-|presence-)'), '');
+
+    _channelListeners.forEach((channelKey, listeners) {
+      final normalizedKey = channelKey.replaceAll(RegExp(r'^(private-|presence-)'), '');
+      if (channelKey == event.channelName || normalizedKey == normalizedEventChannel) {
+        for (final callback in List<Function(PusherEvent)>.from(listeners)) {
+          try {
+            callback(event);
+          } catch (e) {
+            printMessage("⚠️ Error in Pusher Event Listener: $e");
+          }
         }
       }
-    }
+    });
   }
 
   Future<void> subscribeToChannel(
@@ -109,6 +122,15 @@ class PusherService extends GetxService {
     Function(PusherEvent) onEventCallback,
   ) async {
     if (channelName.isEmpty) return;
+
+    if (!isConnected.value) {
+      printMessage("🔄 Pusher not connected, attempting to connect...");
+      try {
+        await _pusher.connect();
+      } catch (e) {
+        printMessage("⚠️ Error connecting to Pusher: $e");
+      }
+    }
 
     if (!_channelListeners.containsKey(channelName)) {
       _channelListeners[channelName] = [];
