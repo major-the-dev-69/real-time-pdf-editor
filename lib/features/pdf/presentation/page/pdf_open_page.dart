@@ -6,7 +6,6 @@ import '../../../../core/enums/user_role.dart';
 import '../../../../core/utils/app_assets.dart';
 import '../../../../db/shared_pref_manager.dart';
 import '../../../../widgets/custom_buttons.dart';
-import '../../../../widgets/custom_snack_bar.dart';
 import '../controller/pdf_edit_controller.dart';
 import '../widgets/annotation_painter.dart';
 
@@ -17,89 +16,12 @@ class PdfOpenPage extends StatefulWidget {
   State<PdfOpenPage> createState() => _PdfOpenPageState();
 }
 
-class _PdfOpenPageState extends State<PdfOpenPage>
-    with SingleTickerProviderStateMixin {
-  late TransformationController _transformationController;
-  late AnimationController _doubleTapAnimationController;
-  Animation<Matrix4>? _doubleTapAnimation;
-  TapDownDetails? _doubleTapDetails;
+class _PdfOpenPageState extends State<PdfOpenPage> {
   final controller = Get.find<PdfEditController>();
-
-  @override
-  void initState() {
-    super.initState();
-    _transformationController = TransformationController();
-    _transformationController.addListener(_onTransformationChanged);
-    _doubleTapAnimationController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 250),
-        )..addListener(() {
-          if (_doubleTapAnimation != null) {
-            _transformationController.value = _doubleTapAnimation!.value;
-          }
-        });
-  }
-
-  void _onTransformationChanged() {
-    final scale = _transformationController.value.getMaxScaleOnAxis();
-    controller.setZoomScale(scale);
-  }
-
-  void _handleDoubleTap() {
-    // if (controller.activeMode.value != AnnotationMode.view) return;
-    if (_doubleTapDetails == null) return;
-    final currentScale = _transformationController.value.getMaxScaleOnAxis();
-
-    Matrix4 targetMatrix;
-    if (currentScale > 1.05) {
-      targetMatrix = Matrix4.identity();
-    } else {
-      final position = _doubleTapDetails!.localPosition;
-      const double targetScale = 2.5;
-
-      final RenderBox? box = context.findRenderObject() as RenderBox?;
-      final Size size = box?.size ?? Size.zero;
-
-      double tx = -position.dx * (targetScale - 1);
-      double ty = -position.dy * (targetScale - 1);
-
-      if (size.width > 0 && size.height > 0) {
-        final double minTx = -size.width * (targetScale - 1);
-        final double minTy = -size.height * (targetScale - 1);
-        tx = tx.clamp(minTx, 0.0);
-        ty = ty.clamp(minTy, 0.0);
-      }
-
-      targetMatrix = Matrix4.translationValues(tx, ty, 0.0)
-        ..scale(targetScale, targetScale, 1.0);
-    }
-
-    _doubleTapAnimation =
-        Matrix4Tween(
-          begin: _transformationController.value,
-          end: targetMatrix,
-        ).animate(
-          CurvedAnimation(
-            parent: _doubleTapAnimationController,
-            curve: Curves.easeInOut,
-          ),
-        );
-
-    _doubleTapAnimationController.forward(from: 0.0);
-  }
 
   String _formatDecimalVal(double val, String unit) {
     final str = val % 1 == 0 ? val.toInt().toString() : val.toStringAsFixed(1);
     return '$str $unit';
-  }
-
-  @override
-  void dispose() {
-    _doubleTapAnimationController.dispose();
-    _transformationController.removeListener(_onTransformationChanged);
-    _transformationController.dispose();
-    super.dispose();
   }
 
   @override
@@ -292,200 +214,163 @@ class _PdfOpenPageState extends State<PdfOpenPage>
 
                     return Obx(() {
                       final mode = controller.activeMode.value;
-                      final currentZoom = controller.zoomScale.value;
-                      return GestureDetector(
-                        onDoubleTapDown: (details) {
-                          _doubleTapDetails = details;
-                        },
-                        onDoubleTap: _handleDoubleTap,
-                        child: InteractiveViewer(
-                          transformationController: _transformationController,
-                          minScale: 1.0,
-                          maxScale: 50.0,
-                          panEnabled:
-                              mode == AnnotationMode.view && currentZoom > 1.0,
-                          scaleEnabled: mode == AnnotationMode.view,
-                          child: Stack(
-                            children: [
-                              // PDF Viewer
-                              AbsorbPointer(
-                                absorbing: true,
-                                child: SfPdfViewer.network(
-                                  pdfUrl,
-                                  key: ValueKey(pdfUrl),
-                                  pageLayoutMode: PdfPageLayoutMode.single,
-                                  controller: controller.pdfViewerController,
-                                  scrollDirection: PdfScrollDirection.vertical,
-                                  enableDoubleTapZooming: false,
-                                  initialZoomLevel: 1,
-                                  maxZoomLevel: 1,
-                                  onDocumentLoaded: (details) {
-                                    controller.totalPages.value =
-                                        details.document.pages.count;
-                                    controller.isLoaded.value = true;
-                                  },
-                                  onDocumentLoadFailed: (details) {
-                                    controller.isPdfLoadError.value = true;
-                                    controller.isLoaded.value = false;
-                                    CustomSnackBar.showError(
-                                      title: 'Document Load Error',
-                                      message: details.description,
+                      final isViewMode = mode == AnnotationMode.view;
+
+                      return Stack(
+                        children: [
+                          AbsorbPointer(
+                            absorbing: !isViewMode,
+                            child: SfPdfViewer.network(
+                              pdfUrl,
+                              key: ValueKey(pdfUrl),
+                              pageLayoutMode: PdfPageLayoutMode.single,
+                              controller: controller.pdfViewerController,
+                              scrollDirection: PdfScrollDirection.vertical,
+                              enableDoubleTapZooming: true,
+                              initialZoomLevel: 1,
+                              maxZoomLevel: 50,
+                              onDocumentLoaded: controller.onDocumentLoaded,
+                              onDocumentLoadFailed:
+                                  controller.onDocumentLoadFailed,
+                              onPageChanged: controller.onPageChanged,
+                              onZoomLevelChanged: (details) {
+                                controller.setZoomScale(details.newZoomLevel);
+                              },
+                            ),
+                          ),
+
+                          Obx(() {
+                            final isLoaded = controller.isLoaded.value;
+                            final currentMode = controller.activeMode.value;
+                            final isViewMode =
+                                currentMode == AnnotationMode.view;
+                            if (!isLoaded) {
+                              return const SizedBox.shrink();
+                            }
+
+                            return Positioned.fill(
+                              child: IgnorePointer(
+                                ignoring: isViewMode,
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final renderSize = Size(
+                                      constraints.maxWidth,
+                                      constraints.maxHeight,
                                     );
-                                  },
-                                  onPageChanged: (details) {
-                                    if (controller.currentPage.value !=
-                                        details.newPageNumber) {
-                                      controller.currentPage.value =
-                                          details.newPageNumber;
-                                      _transformationController.value =
-                                          Matrix4.identity();
-                                      controller.setZoomScale(1.0);
-                                    }
+                                    return GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onPanStart: (details) {
+                                        if (currentMode ==
+                                            AnnotationMode.text) {
+                                          final hitText = controller
+                                              .findTextAnnotationAt(
+                                                details.localPosition,
+                                                renderSize,
+                                              );
+                                          if (hitText != null) {
+                                            controller.startDraggingText(
+                                              hitText,
+                                              details.localPosition,
+                                              renderSize,
+                                            );
+                                            return;
+                                          }
+                                        }
+                                        controller.startLine(
+                                          details.localPosition,
+                                          renderSize,
+                                        );
+                                      },
+                                      onPanUpdate: (details) {
+                                        if (currentMode ==
+                                                AnnotationMode.text &&
+                                            controller.isDraggingText.value) {
+                                          controller.updateDraggingText(
+                                            details.localPosition,
+                                            renderSize,
+                                          );
+                                          return;
+                                        }
+                                        controller.updateLine(
+                                          details.localPosition,
+                                          renderSize,
+                                        );
+                                      },
+                                      onPanEnd: (details) {
+                                        if (currentMode ==
+                                                AnnotationMode.text &&
+                                            controller.isDraggingText.value) {
+                                          controller.endDraggingText();
+                                          return;
+                                        }
+                                        controller.endLine();
+                                      },
+                                      onTapUp: (details) {
+                                        if (currentMode ==
+                                            AnnotationMode.text) {
+                                          final hitText = controller
+                                              .findTextAnnotationAt(
+                                                details.localPosition,
+                                                renderSize,
+                                              );
+                                          if (hitText != null) {
+                                            controller.selectTextAnnotation(
+                                              hitText,
+                                            );
+                                          } else {
+                                            controller
+                                                .clearSelectedTextAnnotation();
+                                            _showAddTextDialog(
+                                              context,
+                                              details.localPosition,
+                                              renderSize,
+                                            );
+                                          }
+                                        } else if (currentMode ==
+                                            AnnotationMode.cross) {
+                                          controller.addCrossAnnotation(
+                                            details.localPosition,
+                                            renderSize,
+                                          );
+                                        } else if (currentMode ==
+                                            AnnotationMode.erase) {
+                                          controller.eraseNear(
+                                            details.localPosition,
+                                            renderSize,
+                                          );
+                                        }
+                                      },
+                                      child: Obx(() {
+                                        return CustomPaint(
+                                          painter: AnnotationPainter(
+                                            lines: controller.lines.toList(),
+                                            currentLine:
+                                                controller.currentLine.value,
+                                            textAnnotations: controller
+                                                .textAnnotations
+                                                .toList(),
+                                            crossAnnotations: controller
+                                                .crossAnnotations
+                                                .toList(),
+                                            currentPage:
+                                                controller.currentPage.value,
+                                            scale: controller.zoomScale.value,
+                                            selectedTextId: controller
+                                                .selectedTextAnnotationId
+                                                .value,
+                                            draggedTextId:
+                                                controller.draggedTextId.value,
+                                          ),
+                                          child: const SizedBox.expand(),
+                                        );
+                                      }),
+                                    );
                                   },
                                 ),
                               ),
-
-                              // Interactive CustomPaint Annotation Layer (only visible when PDF is loaded properly)
-                              Obx(() {
-                                final isLoaded = controller.isLoaded.value;
-                                final currentMode = controller.activeMode.value;
-                                if (!isLoaded) return const SizedBox.shrink();
-
-                                return Positioned.fill(
-                                  child: IgnorePointer(
-                                    ignoring:
-                                        currentMode == AnnotationMode.view,
-                                    child: LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        final renderSize = Size(
-                                          constraints.maxWidth,
-                                          constraints.maxHeight,
-                                        );
-                                        return GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onPanStart: (details) {
-                                            if (currentMode ==
-                                                AnnotationMode.text) {
-                                              final hitText = controller
-                                                  .findTextAnnotationAt(
-                                                    details.localPosition,
-                                                    renderSize,
-                                                  );
-                                              if (hitText != null) {
-                                                controller.startDraggingText(
-                                                  hitText,
-                                                  details.localPosition,
-                                                  renderSize,
-                                                );
-                                                return;
-                                              }
-                                            }
-                                            controller.startLine(
-                                              details.localPosition,
-                                              renderSize,
-                                            );
-                                          },
-                                          onPanUpdate: (details) {
-                                            if (currentMode ==
-                                                    AnnotationMode.text &&
-                                                controller
-                                                    .isDraggingText
-                                                    .value) {
-                                              controller.updateDraggingText(
-                                                details.localPosition,
-                                                renderSize,
-                                              );
-                                              return;
-                                            }
-                                            controller.updateLine(
-                                              details.localPosition,
-                                              renderSize,
-                                            );
-                                          },
-                                          onPanEnd: (details) {
-                                            if (currentMode ==
-                                                    AnnotationMode.text &&
-                                                controller
-                                                    .isDraggingText
-                                                    .value) {
-                                              controller.endDraggingText();
-                                              return;
-                                            }
-                                            controller.endLine();
-                                          },
-                                          onTapUp: (details) {
-                                            if (currentMode ==
-                                                AnnotationMode.text) {
-                                              final hitText = controller
-                                                  .findTextAnnotationAt(
-                                                    details.localPosition,
-                                                    renderSize,
-                                                  );
-                                              if (hitText != null) {
-                                                controller.selectTextAnnotation(
-                                                  hitText,
-                                                );
-                                              } else {
-                                                controller
-                                                    .clearSelectedTextAnnotation();
-                                                _showAddTextDialog(
-                                                  context,
-                                                  details.localPosition,
-                                                  renderSize,
-                                                );
-                                              }
-                                            } else if (currentMode ==
-                                                AnnotationMode.cross) {
-                                              controller.addCrossAnnotation(
-                                                details.localPosition,
-                                                renderSize,
-                                              );
-                                            } else if (currentMode ==
-                                                AnnotationMode.erase) {
-                                              controller.eraseNear(
-                                                details.localPosition,
-                                                renderSize,
-                                              );
-                                            }
-                                          },
-                                          child: Obx(() {
-                                            return CustomPaint(
-                                              painter: AnnotationPainter(
-                                                lines: controller.lines
-                                                    .toList(),
-                                                currentLine: controller
-                                                    .currentLine
-                                                    .value,
-                                                textAnnotations: controller
-                                                    .textAnnotations
-                                                    .toList(),
-                                                crossAnnotations: controller
-                                                    .crossAnnotations
-                                                    .toList(),
-                                                currentPage: controller
-                                                    .currentPage
-                                                    .value,
-                                                scale:
-                                                    controller.zoomScale.value,
-                                                selectedTextId: controller
-                                                    .selectedTextAnnotationId
-                                                    .value,
-                                                draggedTextId: controller
-                                                    .draggedTextId
-                                                    .value,
-                                              ),
-                                              child: const SizedBox.expand(),
-                                            );
-                                          }),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
-                        ),
+                            );
+                          }),
+                        ],
                       );
                     });
                   }),

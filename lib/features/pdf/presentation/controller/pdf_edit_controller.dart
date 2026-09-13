@@ -7,6 +7,7 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/network/api_services.dart';
 import '../../../../core/network/pusher_service.dart';
+import '../../../../widgets/custom_snack_bar.dart';
 import '../../model/annotation_model.dart';
 import '../../model/pdf_document_model.dart';
 import '../widgets/annotation_painter.dart';
@@ -20,7 +21,7 @@ class PdfEditController extends GetxController {
   final isFetchingDetails = false.obs;
   final isFetchingAnnotations = false.obs;
 
-  late PdfViewerController pdfViewerController;
+  final pdfViewerController = PdfViewerController();
 
   // Page tracking
   final currentPage = 1.obs;
@@ -29,6 +30,32 @@ class PdfEditController extends GetxController {
 
   // Zoom & Scale Tracking
   final zoomScale = 1.0.obs;
+
+  void onDocumentLoaded(PdfDocumentLoadedDetails details) {
+    totalPages.value = details.document.pages.count;
+    isLoaded.value = true;
+    isPdfLoadError.value = false;
+  }
+
+  void onDocumentLoadFailed(PdfDocumentLoadFailedDetails details) {
+    isPdfLoadError.value = true;
+    isLoaded.value = false;
+    CustomSnackBar.showError(
+      title: 'Document Load Error',
+      message: details.description,
+    );
+  }
+
+  void onPageChanged(
+    PdfPageChangedDetails details, {
+    VoidCallback? onPageReset,
+  }) {
+    if (currentPage.value != details.newPageNumber) {
+      currentPage.value = details.newPageNumber;
+      onPageReset?.call();
+      setZoomScale(1.0);
+    }
+  }
 
   void zoomIn() {
     if (zoomScale.value < 50.0) {
@@ -61,7 +88,10 @@ class PdfEditController extends GetxController {
 
   void setZoomScale(double val) {
     if (val > 0) {
-      zoomScale.value = double.parse(val.toStringAsFixed(2));
+      final newScale = double.parse(val.toStringAsFixed(2));
+      if ((zoomScale.value - newScale).abs() > 0.01) {
+        zoomScale.value = newScale;
+      }
     }
   }
 
@@ -146,7 +176,6 @@ class PdfEditController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    pdfViewerController = PdfViewerController();
 
     ever(pdfDocument, (_) {
       updatePdfUrlFromModel();
