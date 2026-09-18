@@ -1,6 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:dio/dio.dart' as dio;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
@@ -22,6 +27,18 @@ class PdfEditController extends GetxController {
   final isFetchingAnnotations = false.obs;
 
   final pdfViewerController = PdfViewerController();
+  final transformationController = TransformationController();
+
+  // PDFX Document & High-DPI Image Rendering
+  pdfx.PdfDocument? _pdfxDoc;
+  final currentPageImageBytes = Rxn<Uint8List>();
+  final isRenderingPage = false.obs;
+  final isDownloadingPdf = false.obs;
+  final isOpeningPdf = false.obs;
+  final downloadProgress = 0.0.obs;
+  final pageAspectRatio = (1 / 1.414).obs;
+  String? _localCachedPdfPath;
+  String? get localCachedPdfPath => _localCachedPdfPath;
 
   // Page tracking
   final currentPage = 1.obs;
@@ -30,6 +47,138 @@ class PdfEditController extends GetxController {
 
   // Zoom & Scale Tracking
   final zoomScale = 1.0.obs;
+
+  Future<void> loadPdfFile(String url) async {
+    if (url.isEmpty) return;
+    try {
+      isDownloadingPdf.value = true;
+      isOpeningPdf.value = true;
+      downloadProgress.value = 0.0;
+      isPdfLoadError.value = false;
+
+      final tempDir = await getTemporaryDirectory();
+      final uri = Uri.tryParse(url);
+      final rawFileName = uri != null && uri.pathSegments.isNotEmpty
+          ? uri.pathSegments.last
+          : 'document.pdf';
+      final safeDocId = pdfDocument.value?.id ?? 'doc';
+      final safeFileName = 'pdf_${safeDocId}_$rawFileName';
+      final savePath = '${tempDir.path}/$safeFileName';
+      final file = File(savePath);
+
+      if (!await file.exists() || (await file.length()) == 0) {
+        final client = dio.Dio();
+        await client.download(
+          url,
+          savePath,
+          onReceiveProgress: (received, total) {
+            if (total > 0) {
+              downloadProgress.value = received / total;
+            }
+          },
+        );
+      }
+      isDownloadingPdf.value = false;
+
+      if (await file.exists() && (await file.length()) > 0) {
+        _localCachedPdfPath = file.path;
+        await _openPdfxDocument(file.path);
+      } else {
+        throw Exception("Failed to save downloaded PDF file");
+      }
+    } catch (e) {
+      printMessage("⚠️ Error downloading PDF in PdfEditController: $e");
+      isPdfLoadError.value = true;
+      isLoaded.value = false;
+      CustomSnackBar.showError(
+        title: 'PDF Load Failed',
+        message: 'Unable to load PDF document: $e',
+      );
+    } finally {
+      isDownloadingPdf.value = false;
+      isOpeningPdf.value = false;
+    }
+  }
+
+  Future<void> _openPdfxDocument(String filePath) async {
+    isOpeningPdf.value = true;
+    try {
+      if (_pdfxDoc != null) {
+        await _pdfxDoc?.close();
+        _pdfxDoc = null;
+      }
+      _pdfxDoc = await pdfx.PdfDocument.openFile(filePath);
+      totalPages.value = _pdfxDoc!.pagesCount;
+      isPdfLoadError.value = false;
+      await renderPage(currentPage.value);
+      isLoaded.value = true;
+    } catch (e) {
+      printMessage("⚠️ Error opening PDF document: $e");
+      isPdfLoadError.value = true;
+      isLoaded.value = false;
+    } finally {
+      isOpeningPdf.value = false;
+    }
+  }
+
+  Future<void> renderPage(int pageNumber) async {
+    if (_pdfxDoc == null) return;
+    if (pageNumber < 1 || pageNumber > totalPages.value) return;
+
+    isRenderingPage.value = true;
+    try {
+      final page = await _pdfxDoc!.getPage(pageNumber);
+      final double width = page.width;
+      final double height = page.height;
+      if (width > 0 && height > 0) {
+        pageAspectRatio.value = width / height;
+      }
+
+      // Render at 2.5x resolution for crystal clear sharpness
+      const scaleMultiplier = 2.5;
+      final pageImage = await page.render(
+        width: width * scaleMultiplier,
+        height: height * scaleMultiplier,
+        format: pdfx.PdfPageImageFormat.png,
+        backgroundColor: '#FFFFFF',
+      );
+      await page.close();
+
+      if (pageImage != null) {
+        currentPageImageBytes.value = pageImage.bytes;
+      }
+    } catch (e) {
+      printMessage("⚠️ Error rendering page $pageNumber: $e");
+    } finally {
+      isRenderingPage.value = false;
+    }
+  }
+
+  Future<void> goToNextPage() async {
+    if (currentPage.value < totalPages.value) {
+      currentPage.value++;
+      resetZoom();
+      await renderPage(currentPage.value);
+    }
+  }
+
+  Future<void> goToPreviousPage() async {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+      resetZoom();
+      await renderPage(currentPage.value);
+    }
+  }
+
+  Future<void> goToPage(int pageNo) async {
+    if (pageNo >= 1 &&
+        pageNo <= totalPages.value &&
+        pageNo != currentPage.value) {
+      currentPage.value = pageNo;
+      resetZoom();
+      await renderPage(currentPage.value);
+    }
+  }
 
   void onDocumentLoaded(PdfDocumentLoadedDetails details) {
     totalPages.value = details.document.pages.count;
@@ -52,38 +201,64 @@ class PdfEditController extends GetxController {
   }) {
     if (currentPage.value != details.newPageNumber) {
       currentPage.value = details.newPageNumber;
+      resetZoom();
       onPageReset?.call();
-      setZoomScale(1.0);
     }
   }
 
-  void zoomIn() {
-    if (zoomScale.value < 50.0) {
-      zoomScale.value = double.parse(
-        (zoomScale.value + 0.25).toStringAsFixed(2),
-      );
-      try {
-        pdfViewerController.zoomLevel = zoomScale.value;
-      } catch (_) {}
+  void zoomIn({Size viewportSize = const Size(400, 600)}) {
+    final currentScale = transformationController.value.getMaxScaleOnAxis();
+    if (currentScale < 20.0) {
+      final targetScale = (currentScale + 0.5).clamp(1.0, 20.0);
+      _applyZoom(targetScale, viewportSize);
     }
   }
 
-  void zoomOut() {
-    if (zoomScale.value > 0.5) {
-      zoomScale.value = double.parse(
-        (zoomScale.value - 0.25).toStringAsFixed(2),
-      );
-      try {
-        pdfViewerController.zoomLevel = zoomScale.value;
-      } catch (_) {}
+  void zoomOut({Size viewportSize = const Size(400, 600)}) {
+    final currentScale = transformationController.value.getMaxScaleOnAxis();
+    if (currentScale > 1.0) {
+      final targetScale = (currentScale - 0.5).clamp(1.0, 20.0);
+      _applyZoom(targetScale, viewportSize);
     }
+  }
+
+  void zoomInAt(
+    Offset tapPosition,
+    Size viewportSize, {
+    double targetScale = 2.5,
+  }) {
+    final double dx = -tapPosition.dx * (targetScale - 1);
+    final double dy = -tapPosition.dy * (targetScale - 1);
+    final matrix = Matrix4.identity()
+      ..setEntry(0, 0, targetScale)
+      ..setEntry(1, 1, targetScale)
+      ..setEntry(0, 3, dx)
+      ..setEntry(1, 3, dy);
+    transformationController.value = matrix;
+    setZoomScale(targetScale);
   }
 
   void resetZoom() {
+    transformationController.value = Matrix4.identity();
     zoomScale.value = 1.0;
-    try {
-      pdfViewerController.zoomLevel = 1.0;
-    } catch (_) {}
+  }
+
+  void _applyZoom(double targetScale, Size viewportSize) {
+    if (targetScale <= 1.0) {
+      resetZoom();
+      return;
+    }
+    final double cx = viewportSize.width / 2;
+    final double cy = viewportSize.height / 2;
+    final double dx = cx - cx * targetScale;
+    final double dy = cy - cy * targetScale;
+    final matrix = Matrix4.identity()
+      ..setEntry(0, 0, targetScale)
+      ..setEntry(1, 1, targetScale)
+      ..setEntry(0, 3, dx)
+      ..setEntry(1, 3, dy);
+    transformationController.value = matrix;
+    setZoomScale(targetScale);
   }
 
   void setZoomScale(double val) {
@@ -185,11 +360,28 @@ class PdfEditController extends GetxController {
     if (args is PdfDocumentModel) {
       pdfDocument.value = args;
       fetchPdfDetails(args.id);
+    } else if (args is File && args.existsSync()) {
+      _openPdfxDocument(args.path);
     } else if (args is String && args.isNotEmpty) {
-      fetchPdfDetails(args);
+      if (args.startsWith('http://') || args.startsWith('https://')) {
+        loadPdfFile(args);
+      } else if (File(args).existsSync()) {
+        _openPdfxDocument(args);
+      } else {
+        fetchPdfDetails(args);
+      }
     } else if (args is Map<String, dynamic>) {
       if (args['pdf'] is PdfDocumentModel) {
         pdfDocument.value = args['pdf'] as PdfDocumentModel;
+      }
+      if (args['file'] is File && (args['file'] as File).existsSync()) {
+        _openPdfxDocument((args['file'] as File).path);
+      } else if (args['path'] is String && File(args['path']).existsSync()) {
+        _openPdfxDocument(args['path']);
+      } else if (args['url'] is String &&
+          (args['url'].toString().startsWith('http://') ||
+              args['url'].toString().startsWith('https://'))) {
+        loadPdfFile(args['url']);
       }
       final uuid =
           args['uuid']?.toString() ??
@@ -205,12 +397,14 @@ class PdfEditController extends GetxController {
 
   void updatePdfUrlFromModel() {
     final modelUrl = pdfDocument.value?.pdfUrl.trim() ?? '';
-    if (modelUrl.isNotEmpty && (modelUrl.startsWith('https://'))) {
+    if (modelUrl.isNotEmpty &&
+        (modelUrl.startsWith('http://') || modelUrl.startsWith('https://'))) {
       effectivePdfUrl.value = modelUrl;
       isPdfLoadError.value = false;
+      loadPdfFile(modelUrl);
     } else {
       effectivePdfUrl.value = '';
-      if (pdfDocument.value != null) {
+      if (pdfDocument.value != null && _pdfxDoc == null) {
         isPdfLoadError.value = true;
       }
     }
@@ -741,6 +935,8 @@ class PdfEditController extends GetxController {
         _handlePusherEvent,
       );
     }
+    _pdfxDoc?.close();
+    transformationController.dispose();
     pdfViewerController.dispose();
     super.onClose();
   }

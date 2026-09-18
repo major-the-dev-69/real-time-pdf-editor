@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../../../../core/enums/user_role.dart';
 import '../../../../core/utils/app_assets.dart';
 import '../../../../db/shared_pref_manager.dart';
 import '../../../../widgets/custom_buttons.dart';
 import '../controller/pdf_edit_controller.dart';
-import '../widgets/annotation_painter.dart';
+import '../widgets/pdf_gesture_canvas.dart';
 
 class PdfOpenPage extends StatefulWidget {
   const PdfOpenPage({super.key});
@@ -92,21 +91,39 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                   ),
                   if (controller.zoomScale.value > 1.05) ...[
                     const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
+                    Tooltip(
+                      message: 'Tap to reset zoom (100%)',
+                      child: InkWell(
+                        onTap: controller.resetZoom,
                         borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${(controller.zoomScale.value * 100).round()}%',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onPrimaryContainer,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${(controller.zoomScale.value * 100).round()}%',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.restart_alt_rounded,
+                                size: 14,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -151,17 +168,74 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
             Expanded(
               child: Stack(
                 children: [
-                  // Integrated Zoomable PDF Viewer & Synchronized Annotation Layer
+                  // Integrated Zoomable High-DPI PDF Page Image & Synchronized Annotation Layer
                   Obx(() {
-                    final pdfUrl = controller.effectivePdfUrl.value;
+                    final isDownloading = controller.isDownloadingPdf.value;
+                    final isOpening = controller.isOpeningPdf.value;
+                    final isRendering = controller.isRenderingPage.value;
                     final isFetching = controller.isFetchingDetails.value;
+                    final progress = controller.downloadProgress.value;
+                    final imageBytes = controller.currentPageImageBytes.value;
                     final isError = controller.isPdfLoadError.value;
+                    final mode = controller.activeMode.value;
+                    final isLoaded = controller.isLoaded.value;
 
-                    if (isFetching && pdfUrl.isEmpty && !isError) {
-                      return const Center(child: CircularProgressIndicator());
+                    if (isDownloading && imageBytes == null && !isError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
+                            Text(
+                              progress > 0
+                                  ? 'Downloading document... ${(progress * 100).toInt()}%'
+                                  : 'Downloading document...',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (progress > 0) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: 200,
+                                child: LinearProgressIndicator(value: progress),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
                     }
 
-                    if (isError || pdfUrl.isEmpty) {
+                    if ((isOpening || isRendering || isFetching) &&
+                        imageBytes == null &&
+                        !isError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
+                            Text(
+                              isRendering
+                                  ? 'Rendering page...'
+                                  : 'Preparing high-resolution view...',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    if (isError ||
+                        (imageBytes == null &&
+                            controller.effectivePdfUrl.value.isEmpty &&
+                            !isOpening &&
+                            !isFetching &&
+                            !isDownloading &&
+                            !isRendering)) {
                       return Center(
                         child: Padding(
                           padding: const EdgeInsets.all(32.0),
@@ -212,167 +286,34 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                       );
                     }
 
-                    return Obx(() {
-                      final mode = controller.activeMode.value;
-                      final isViewMode = mode == AnnotationMode.view;
-
-                      return Stack(
-                        children: [
-                          AbsorbPointer(
-                            absorbing: !isViewMode,
-                            child: SfPdfViewer.network(
-                              pdfUrl,
-                              key: ValueKey(pdfUrl),
-                              pageLayoutMode: PdfPageLayoutMode.single,
-                              controller: controller.pdfViewerController,
-                              scrollDirection: PdfScrollDirection.vertical,
-                              enableDoubleTapZooming: true,
-                              initialZoomLevel: 1,
-                              maxZoomLevel: 50,
-                              onDocumentLoaded: controller.onDocumentLoaded,
-                              onDocumentLoadFailed:
-                                  controller.onDocumentLoadFailed,
-                              onPageChanged: controller.onPageChanged,
-                              onZoomLevelChanged: (details) {
-                                controller.setZoomScale(details.newZoomLevel);
-                              },
-                            ),
-                          ),
-
-                          Obx(() {
-                            final isLoaded = controller.isLoaded.value;
-                            final currentMode = controller.activeMode.value;
-                            final isViewMode =
-                                currentMode == AnnotationMode.view;
-                            if (!isLoaded) {
-                              return const SizedBox.shrink();
-                            }
-
-                            return Positioned.fill(
-                              child: IgnorePointer(
-                                ignoring: isViewMode,
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final renderSize = Size(
-                                      constraints.maxWidth,
-                                      constraints.maxHeight,
-                                    );
-                                    return GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onPanStart: (details) {
-                                        if (currentMode ==
-                                            AnnotationMode.text) {
-                                          final hitText = controller
-                                              .findTextAnnotationAt(
-                                                details.localPosition,
-                                                renderSize,
-                                              );
-                                          if (hitText != null) {
-                                            controller.startDraggingText(
-                                              hitText,
-                                              details.localPosition,
-                                              renderSize,
-                                            );
-                                            return;
-                                          }
-                                        }
-                                        controller.startLine(
-                                          details.localPosition,
-                                          renderSize,
-                                        );
-                                      },
-                                      onPanUpdate: (details) {
-                                        if (currentMode ==
-                                                AnnotationMode.text &&
-                                            controller.isDraggingText.value) {
-                                          controller.updateDraggingText(
-                                            details.localPosition,
-                                            renderSize,
-                                          );
-                                          return;
-                                        }
-                                        controller.updateLine(
-                                          details.localPosition,
-                                          renderSize,
-                                        );
-                                      },
-                                      onPanEnd: (details) {
-                                        if (currentMode ==
-                                                AnnotationMode.text &&
-                                            controller.isDraggingText.value) {
-                                          controller.endDraggingText();
-                                          return;
-                                        }
-                                        controller.endLine();
-                                      },
-                                      onTapUp: (details) {
-                                        if (currentMode ==
-                                            AnnotationMode.text) {
-                                          final hitText = controller
-                                              .findTextAnnotationAt(
-                                                details.localPosition,
-                                                renderSize,
-                                              );
-                                          if (hitText != null) {
-                                            controller.selectTextAnnotation(
-                                              hitText,
-                                            );
-                                          } else {
-                                            controller
-                                                .clearSelectedTextAnnotation();
-                                            _showAddTextDialog(
-                                              context,
-                                              details.localPosition,
-                                              renderSize,
-                                            );
-                                          }
-                                        } else if (currentMode ==
-                                            AnnotationMode.cross) {
-                                          controller.addCrossAnnotation(
-                                            details.localPosition,
-                                            renderSize,
-                                          );
-                                        } else if (currentMode ==
-                                            AnnotationMode.erase) {
-                                          controller.eraseNear(
-                                            details.localPosition,
-                                            renderSize,
-                                          );
-                                        }
-                                      },
-                                      child: Obx(() {
-                                        return CustomPaint(
-                                          painter: AnnotationPainter(
-                                            lines: controller.lines.toList(),
-                                            currentLine:
-                                                controller.currentLine.value,
-                                            textAnnotations: controller
-                                                .textAnnotations
-                                                .toList(),
-                                            crossAnnotations: controller
-                                                .crossAnnotations
-                                                .toList(),
-                                            currentPage:
-                                                controller.currentPage.value,
-                                            scale: controller.zoomScale.value,
-                                            selectedTextId: controller
-                                                .selectedTextAnnotationId
-                                                .value,
-                                            draggedTextId:
-                                                controller.draggedTextId.value,
-                                          ),
-                                          child: const SizedBox.expand(),
-                                        );
-                                      }),
-                                    );
-                                  },
-                                ),
+                    if (imageBytes == null) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Loading page...',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
                               ),
-                            );
-                          }),
-                        ],
+                            ),
+                          ],
+                        ),
                       );
-                    });
+                    }
+
+                    return PdfGestureCanvas(
+                      controller: controller,
+                      imageBytes: imageBytes,
+                      pageRatio: controller.pageAspectRatio.value,
+                      isLoaded: isLoaded,
+                      mode: mode,
+                      onShowAddTextDialog: (dialogCtx, position, renderSize) {
+                        _showAddTextDialog(dialogCtx, position, renderSize);
+                      },
+                    );
                   }),
 
                   // Layer 2: View Mode Active Indicator Banner
@@ -506,8 +447,7 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                                 onPressed: isFirstPage
                                     ? null
                                     : () {
-                                        controller.pdfViewerController
-                                            .previousPage();
+                                        controller.goToPreviousPage();
                                       },
                               ),
 
@@ -540,8 +480,7 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                                 onPressed: isLastPage
                                     ? null
                                     : () {
-                                        controller.pdfViewerController
-                                            .nextPage();
+                                        controller.goToNextPage();
                                       },
                               ),
                             ],
@@ -551,7 +490,88 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                     );
                   }),
 
-                  // Layer 4: Bottom Tool Control Panel Overlay (Positioned bottom in Stack)
+                  // Layer 4: Floating Zoom Controls (Zoom In, Zoom Out, Reset Zoom)
+                  Obx(() {
+                    final hasError =
+                        controller.isPdfLoadError.value ||
+                        controller.effectivePdfUrl.value.isEmpty;
+                    final isLoaded = controller.isLoaded.value;
+                    if (hasError || !isLoaded) return const SizedBox.shrink();
+
+                    final mode = controller.activeMode.value;
+                    final isBottomPanelActive =
+                        userRole.canDraw && mode != AnnotationMode.view;
+                    final double bottomOffset = isBottomPanelActive
+                        ? ((mode == AnnotationMode.draw ||
+                                  mode == AnnotationMode.text)
+                              ? 145.0
+                              : 75.0)
+                        : context.mediaQueryPadding.bottom + 16;
+
+                    return Positioned(
+                      bottom: bottomOffset,
+                      right: 16,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface.withValues(
+                            alpha: 0.92,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.add_rounded, size: 20),
+                              tooltip: 'Zoom In',
+                              onPressed: () => controller.zoomIn(),
+                            ),
+                            Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.5),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.remove_rounded, size: 20),
+                              tooltip: 'Zoom Out',
+                              onPressed: () => controller.zoomOut(),
+                            ),
+                            if (controller.zoomScale.value > 1.05) ...[
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: theme.colorScheme.outlineVariant
+                                    .withValues(alpha: 0.5),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.restart_alt_rounded,
+                                  size: 18,
+                                ),
+                                tooltip: 'Reset Zoom (100%)',
+                                onPressed: () => controller.resetZoom(),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+
+                  // Layer 5: Bottom Tool Control Panel Overlay (Positioned bottom in Stack)
                   Obx(() {
                     final hasError =
                         controller.isPdfLoadError.value ||
@@ -1132,7 +1152,7 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Unsaved Changes',
+                'Are you sure you want to exit?',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

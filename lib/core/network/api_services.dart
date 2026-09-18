@@ -229,7 +229,7 @@ class ApiServices extends GetxService {
     }
   }
 
-  Future<ResponseModel> checkResponseModel(Response response) async {
+  ResponseModel checkResponseModel(Response response) {
     printMessage("Status Code: ${response.statusCode}");
     printMessage("Status Message: ${response.statusMessage}");
     printMessage("Raw Response Data: ${jsonEncode(response.data)}");
@@ -264,7 +264,7 @@ class ApiServices extends GetxService {
     if (response.statusCode == 401) {
       final message = responseData['message'] ?? "Unauthorized access";
       if (Get.currentRoute != AppRoutes.login) {
-        await SharedPrefManager().userLogOut();
+        SharedPrefManager().userLogOut();
       }
       return ResponseModel(false, message, null);
     }
