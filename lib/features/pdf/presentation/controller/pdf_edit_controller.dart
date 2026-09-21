@@ -1,18 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:dio/dio.dart' as dio;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:pdfx/pdfx.dart' as pdfx;
+
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/network/api_services.dart';
 import '../../../../core/network/pusher_service.dart';
-import '../../../../widgets/custom_snack_bar.dart';
+
 import '../../model/annotation_model.dart';
 import '../../model/pdf_document_model.dart';
 import '../widgets/annotation_painter.dart';
@@ -26,139 +23,66 @@ class PdfEditController extends GetxController {
   final isFetchingDetails = false.obs;
   final isFetchingAnnotations = false.obs;
 
-  final pdfViewerController = PdfViewerController();
   final transformationController = TransformationController();
 
-  // PDFX Document & High-DPI Image Rendering
-  pdfx.PdfDocument? _pdfxDoc;
-  final currentPageImageBytes = Rxn<Uint8List>();
-  final isRenderingPage = false.obs;
-  final isDownloadingPdf = false.obs;
-  final isOpeningPdf = false.obs;
-  final downloadProgress = 0.0.obs;
-  final pageAspectRatio = (1 / 1.414).obs;
-  String? _localCachedPdfPath;
-  String? get localCachedPdfPath => _localCachedPdfPath;
+  // High-DPI Image Rendering & Aspect Ratio
+  final pageAspectRatio = 1.0.obs;
+  final isLoaded = false.obs;
 
   // Page tracking
   final currentPage = 1.obs;
   final totalPages = 1.obs;
-  final isLoaded = false.obs;
 
   // Zoom & Scale Tracking
   final zoomScale = 1.0.obs;
 
-  Future<void> loadPdfFile(String url) async {
+  void _resolveImageDimensions(String url) {
     if (url.isEmpty) return;
     try {
-      isDownloadingPdf.value = true;
-      isOpeningPdf.value = true;
-      downloadProgress.value = 0.0;
-      isPdfLoadError.value = false;
+      final imageProvider =
+          (url.startsWith('http://') || url.startsWith('https://'))
+          ? NetworkImage(url)
+          : FileImage(File(url)) as ImageProvider;
 
-      final tempDir = await getTemporaryDirectory();
-      final uri = Uri.tryParse(url);
-      final rawFileName = uri != null && uri.pathSegments.isNotEmpty
-          ? uri.pathSegments.last
-          : 'document.pdf';
-      final safeDocId = pdfDocument.value?.id ?? 'doc';
-      final safeFileName = 'pdf_${safeDocId}_$rawFileName';
-      final savePath = '${tempDir.path}/$safeFileName';
-      final file = File(savePath);
-
-      if (!await file.exists() || (await file.length()) == 0) {
-        final client = dio.Dio();
-        await client.download(
-          url,
-          savePath,
-          onReceiveProgress: (received, total) {
-            if (total > 0) {
-              downloadProgress.value = received / total;
-            }
-          },
-        );
-      }
-      isDownloadingPdf.value = false;
-
-      if (await file.exists() && (await file.length()) > 0) {
-        _localCachedPdfPath = file.path;
-        await _openPdfxDocument(file.path);
-      } else {
-        throw Exception("Failed to save downloaded PDF file");
-      }
-    } catch (e) {
-      printMessage("⚠️ Error downloading PDF in PdfEditController: $e");
-      isPdfLoadError.value = true;
-      isLoaded.value = false;
-      CustomSnackBar.showError(
-        title: 'PDF Load Failed',
-        message: 'Unable to load PDF document: $e',
+      final ImageStream stream = imageProvider.resolve(
+        const ImageConfiguration(),
       );
-    } finally {
-      isDownloadingPdf.value = false;
-      isOpeningPdf.value = false;
-    }
-  }
-
-  Future<void> _openPdfxDocument(String filePath) async {
-    isOpeningPdf.value = true;
-    try {
-      if (_pdfxDoc != null) {
-        await _pdfxDoc?.close();
-        _pdfxDoc = null;
-      }
-      _pdfxDoc = await pdfx.PdfDocument.openFile(filePath);
-      totalPages.value = _pdfxDoc!.pagesCount;
-      isPdfLoadError.value = false;
-      await renderPage(currentPage.value);
-      isLoaded.value = true;
-    } catch (e) {
-      printMessage("⚠️ Error opening PDF document: $e");
-      isPdfLoadError.value = true;
-      isLoaded.value = false;
-    } finally {
-      isOpeningPdf.value = false;
-    }
-  }
-
-  Future<void> renderPage(int pageNumber) async {
-    if (_pdfxDoc == null) return;
-    if (pageNumber < 1 || pageNumber > totalPages.value) return;
-
-    isRenderingPage.value = true;
-    try {
-      final page = await _pdfxDoc!.getPage(pageNumber);
-      final double width = page.width;
-      final double height = page.height;
-      if (width > 0 && height > 0) {
-        pageAspectRatio.value = width / height;
-      }
-
-      // Render at 2.5x resolution for crystal clear sharpness
-      const scaleMultiplier = 2.5;
-      final pageImage = await page.render(
-        width: width * scaleMultiplier,
-        height: height * scaleMultiplier,
-        format: pdfx.PdfPageImageFormat.png,
-        backgroundColor: '#FFFFFF',
+      late final ImageStreamListener listener;
+      listener = ImageStreamListener(
+        (ImageInfo info, bool synchronousCall) {
+          final width = info.image.width.toDouble();
+          final height = info.image.height.toDouble();
+          if (width > 0 && height > 0) {
+            pageAspectRatio.value = width / height;
+          }
+          isLoaded.value = true;
+          isPdfLoadError.value = false;
+        },
+        onError: (exception, stackTrace) {
+          printMessage("⚠️ Error resolving image dimensions: $exception");
+          isPdfLoadError.value = true;
+          isLoaded.value = true;
+        },
       );
-      await page.close();
-
-      if (pageImage != null) {
-        currentPageImageBytes.value = pageImage.bytes;
-      }
+      stream.addListener(listener);
     } catch (e) {
-      printMessage("⚠️ Error rendering page $pageNumber: $e");
-    } finally {
-      isRenderingPage.value = false;
+      printMessage("⚠️ Error setting up image stream: $e");
     }
   }
+
+  Future<void> loadPdfFile(String url) async => loadImageFile(url);
+
+  Future<void> loadImageFile(String url) async {
+    effectivePdfUrl.value = url;
+    _resolveImageDimensions(url);
+  }
+
+  Future<void> renderPage(int pageNumber) async {}
 
   Future<void> goToNextPage() async {
     if (currentPage.value < totalPages.value) {
       currentPage.value++;
       resetZoom();
-      await renderPage(currentPage.value);
     }
   }
 
@@ -166,7 +90,6 @@ class PdfEditController extends GetxController {
     if (currentPage.value > 1) {
       currentPage.value--;
       resetZoom();
-      await renderPage(currentPage.value);
     }
   }
 
@@ -176,33 +99,6 @@ class PdfEditController extends GetxController {
         pageNo != currentPage.value) {
       currentPage.value = pageNo;
       resetZoom();
-      await renderPage(currentPage.value);
-    }
-  }
-
-  void onDocumentLoaded(PdfDocumentLoadedDetails details) {
-    totalPages.value = details.document.pages.count;
-    isLoaded.value = true;
-    isPdfLoadError.value = false;
-  }
-
-  void onDocumentLoadFailed(PdfDocumentLoadFailedDetails details) {
-    isPdfLoadError.value = true;
-    isLoaded.value = false;
-    CustomSnackBar.showError(
-      title: 'Document Load Error',
-      message: details.description,
-    );
-  }
-
-  void onPageChanged(
-    PdfPageChangedDetails details, {
-    VoidCallback? onPageReset,
-  }) {
-    if (currentPage.value != details.newPageNumber) {
-      currentPage.value = details.newPageNumber;
-      resetZoom();
-      onPageReset?.call();
     }
   }
 
@@ -294,10 +190,10 @@ class PdfEditController extends GetxController {
 
   // Drawing Customization
   final selectedColor = Rx<Color>(Colors.red);
-  final selectedStrokeWidth = 4.0.obs;
-  final selectedFontSize = 18.0.obs;
+  final selectedStrokeWidth = 1.0.obs;
+  final selectedFontSize = 14.0.obs;
   final selectedFontWeight = Rx<FontWeight>(FontWeight.normal);
-  final selectedCrossSize = 20.0.obs;
+  final selectedCrossSize = 3.0.obs;
 
   // Text Drag & Selection Tracking
   final isDraggingText = false.obs;
@@ -338,11 +234,6 @@ class PdfEditController extends GetxController {
   // Redo tracking stack
   final redoStack = <Map<String, dynamic>>[].obs;
 
-  bool get hasUnsavedChanges =>
-      lines.isNotEmpty ||
-      textAnnotations.isNotEmpty ||
-      crossAnnotations.isNotEmpty;
-
   String currentPusherChannel = '';
 
   final effectivePdfUrl = ''.obs;
@@ -361,12 +252,14 @@ class PdfEditController extends GetxController {
       pdfDocument.value = args;
       fetchPdfDetails(args.id);
     } else if (args is File && args.existsSync()) {
-      _openPdfxDocument(args.path);
+      effectivePdfUrl.value = args.path;
+      _resolveImageDimensions(args.path);
     } else if (args is String && args.isNotEmpty) {
-      if (args.startsWith('http://') || args.startsWith('https://')) {
-        loadPdfFile(args);
-      } else if (File(args).existsSync()) {
-        _openPdfxDocument(args);
+      if (args.startsWith('http://') ||
+          args.startsWith('https://') ||
+          File(args).existsSync()) {
+        effectivePdfUrl.value = args;
+        _resolveImageDimensions(args);
       } else {
         fetchPdfDetails(args);
       }
@@ -375,13 +268,16 @@ class PdfEditController extends GetxController {
         pdfDocument.value = args['pdf'] as PdfDocumentModel;
       }
       if (args['file'] is File && (args['file'] as File).existsSync()) {
-        _openPdfxDocument((args['file'] as File).path);
+        effectivePdfUrl.value = (args['file'] as File).path;
+        _resolveImageDimensions(effectivePdfUrl.value);
       } else if (args['path'] is String && File(args['path']).existsSync()) {
-        _openPdfxDocument(args['path']);
+        effectivePdfUrl.value = args['path'];
+        _resolveImageDimensions(effectivePdfUrl.value);
       } else if (args['url'] is String &&
           (args['url'].toString().startsWith('http://') ||
               args['url'].toString().startsWith('https://'))) {
-        loadPdfFile(args['url']);
+        effectivePdfUrl.value = args['url'];
+        _resolveImageDimensions(effectivePdfUrl.value);
       }
       final uuid =
           args['uuid']?.toString() ??
@@ -397,16 +293,9 @@ class PdfEditController extends GetxController {
 
   void updatePdfUrlFromModel() {
     final modelUrl = pdfDocument.value?.pdfUrl.trim() ?? '';
-    if (modelUrl.isNotEmpty &&
-        (modelUrl.startsWith('http://') || modelUrl.startsWith('https://'))) {
+    if (modelUrl.isNotEmpty) {
       effectivePdfUrl.value = modelUrl;
-      isPdfLoadError.value = false;
-      loadPdfFile(modelUrl);
-    } else {
-      effectivePdfUrl.value = '';
-      if (pdfDocument.value != null && _pdfxDoc == null) {
-        isPdfLoadError.value = true;
-      }
+      _resolveImageDimensions(modelUrl);
     }
   }
 
@@ -935,9 +824,7 @@ class PdfEditController extends GetxController {
         _handlePusherEvent,
       );
     }
-    _pdfxDoc?.close();
     transformationController.dispose();
-    pdfViewerController.dispose();
     super.onClose();
   }
 

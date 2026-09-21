@@ -28,67 +28,31 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
     final theme = Theme.of(context);
     final userRole = SharedPrefManager().userRoleEnum;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (controller.hasUnsavedChanges) {
-          _showExitConfirmationDialog(context, onExit: () => Get.back());
-        } else {
-          Get.back();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: Obx(() {
-            final title = controller.pdfDocument.value?.title ?? 'PDF Document';
-            return Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
-            );
-          }),
-          centerTitle: false,
-          elevation: 1,
-          leading: IconButton(
-            icon: const Icon(AppAssets.backArrow),
-            onPressed: () {
-              if (controller.hasUnsavedChanges) {
-                _showExitConfirmationDialog(context, onExit: () => Get.back());
-              } else {
-                Get.back();
-              }
-            },
-          ),
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Obx(() {
+          final title = controller.pdfDocument.value?.title ?? 'Document';
+          return Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+          );
+        }),
+        centerTitle: false,
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(AppAssets.backArrow),
+          onPressed: Get.back,
+        ),
           actions: [
             Obx(() {
-              final hasError =
-                  controller.isPdfLoadError.value ||
-                  controller.effectivePdfUrl.value.isEmpty;
-              final isLoaded = controller.isLoaded.value;
-              if (hasError || !isLoaded) return const SizedBox.shrink();
+              final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
+              if (isUrlEmpty) return const SizedBox.shrink();
 
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${controller.currentPage.value} / ${controller.totalPages.value}',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
                   if (controller.zoomScale.value > 1.05) ...[
                     const SizedBox(width: 6),
                     Tooltip(
@@ -154,159 +118,26 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
           children: [
             // Mode Switcher Header Toolbar
             Obx(() {
-              final hasError =
-                  controller.isPdfLoadError.value ||
-                  controller.effectivePdfUrl.value.isEmpty;
-              final isLoaded = controller.isLoaded.value;
-              if (!userRole.canDraw || hasError || !isLoaded) {
+              final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
+              if (!userRole.canDraw || isUrlEmpty) {
                 return const SizedBox.shrink();
               }
               return _buildModeToolbar(context);
             }),
 
-            // PDF Viewer Canvas & Interactive Annotation Layer Stack
+            // Image Viewer Canvas & Interactive Annotation Layer Stack
             Expanded(
               child: Stack(
                 children: [
-                  // Integrated Zoomable High-DPI PDF Page Image & Synchronized Annotation Layer
+                  // Main Zoomable Image Canvas & Interactive Annotation Layer
                   Obx(() {
-                    final isDownloading = controller.isDownloadingPdf.value;
-                    final isOpening = controller.isOpeningPdf.value;
-                    final isRendering = controller.isRenderingPage.value;
-                    final isFetching = controller.isFetchingDetails.value;
-                    final progress = controller.downloadProgress.value;
-                    final imageBytes = controller.currentPageImageBytes.value;
-                    final isError = controller.isPdfLoadError.value;
-                    final mode = controller.activeMode.value;
+                    final imageUrl = controller.effectivePdfUrl.value;
                     final isLoaded = controller.isLoaded.value;
-
-                    if (isDownloading && imageBytes == null && !isError) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const CircularProgressIndicator(),
-                            const SizedBox(height: 16),
-                            Text(
-                              progress > 0
-                                  ? 'Downloading document... ${(progress * 100).toInt()}%'
-                                  : 'Downloading document...',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            if (progress > 0) ...[
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: 200,
-                                child: LinearProgressIndicator(value: progress),
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    }
-
-                    if ((isOpening || isRendering || isFetching) &&
-                        imageBytes == null &&
-                        !isError) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const CircularProgressIndicator(),
-                            const SizedBox(height: 16),
-                            Text(
-                              isRendering
-                                  ? 'Rendering page...'
-                                  : 'Preparing high-resolution view...',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    if (isError ||
-                        (imageBytes == null &&
-                            controller.effectivePdfUrl.value.isEmpty &&
-                            !isOpening &&
-                            !isFetching &&
-                            !isDownloading &&
-                            !isRendering)) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.errorContainer
-                                      .withValues(alpha: 0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.picture_as_pdf_rounded,
-                                  size: 56,
-                                  color: theme.colorScheme.error,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'PDF Not Available',
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'The requested PDF document could not be loaded or the file URL is invalid.',
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurface.withValues(
-                                    alpha: 0.6,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              CustomButton(
-                                title: 'Go Back',
-                                icon: Icons.arrow_back_rounded,
-                                width: 160,
-                                onPressed: () => Get.back(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    if (imageBytes == null) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const CircularProgressIndicator(),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Loading page...',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
+                    final mode = controller.activeMode.value;
 
                     return PdfGestureCanvas(
                       controller: controller,
-                      imageBytes: imageBytes,
+                      imageUrl: imageUrl,
                       pageRatio: controller.pageAspectRatio.value,
                       isLoaded: isLoaded,
                       mode: mode,
@@ -318,12 +149,8 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
 
                   // Layer 2: View Mode Active Indicator Banner
                   Obx(() {
-                    final hasError =
-                        controller.isPdfLoadError.value ||
-                        controller.effectivePdfUrl.value.isEmpty;
-                    final isLoaded = controller.isLoaded.value;
-                    if (hasError ||
-                        !isLoaded ||
+                    final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
+                    if (isUrlEmpty ||
                         controller.activeMode.value == AnnotationMode.view) {
                       return const SizedBox.shrink();
                     }
@@ -376,127 +203,10 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                     );
                   }),
 
-                  // Layer 3: Floating Page Navigation Controls (Only visible if totalPages > 1)
+                  // Layer 3: Floating Zoom Controls (Zoom In, Zoom Out, Reset Zoom)
                   Obx(() {
-                    final hasError =
-                        controller.isPdfLoadError.value ||
-                        controller.effectivePdfUrl.value.isEmpty;
-                    final isLoaded = controller.isLoaded.value;
-                    final totalPages = controller.totalPages.value;
-                    final currentPage = controller.currentPage.value;
-
-                    if (hasError || !isLoaded || totalPages <= 1) {
-                      return const SizedBox.shrink();
-                    }
-
-                    final isFirstPage = currentPage <= 1;
-                    final isLastPage = currentPage >= totalPages;
-                    final mode = controller.activeMode.value;
-
-                    final isBottomPanelActive =
-                        userRole.canDraw && mode != AnnotationMode.view;
-                    final double bottomOffset = isBottomPanelActive
-                        ? ((mode == AnnotationMode.draw ||
-                                  mode == AnnotationMode.text)
-                              ? 135.0
-                              : 65.0)
-                        : context.mediaQueryPadding.bottom + 12;
-
-                    return Positioned(
-                      bottom: bottomOffset,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withValues(
-                              alpha: 0.92,
-                            ),
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.6),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.18),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Previous Page Button
-                              IconButton(
-                                icon: Icon(
-                                  Icons.chevron_left_rounded,
-                                  color: isFirstPage
-                                      ? theme.colorScheme.onSurface.withValues(
-                                          alpha: 0.3,
-                                        )
-                                      : theme.colorScheme.primary,
-                                  size: 28,
-                                ),
-                                tooltip: 'Previous Page',
-                                onPressed: isFirstPage
-                                    ? null
-                                    : () {
-                                        controller.goToPreviousPage();
-                                      },
-                              ),
-
-                              // Current / Total Page Label
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8.0,
-                                ),
-                                child: Text(
-                                  '$currentPage / $totalPages',
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-
-                              // Next Page Button
-                              IconButton(
-                                icon: Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: isLastPage
-                                      ? theme.colorScheme.onSurface.withValues(
-                                          alpha: 0.3,
-                                        )
-                                      : theme.colorScheme.primary,
-                                  size: 28,
-                                ),
-                                tooltip: 'Next Page',
-                                onPressed: isLastPage
-                                    ? null
-                                    : () {
-                                        controller.goToNextPage();
-                                      },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-
-                  // Layer 4: Floating Zoom Controls (Zoom In, Zoom Out, Reset Zoom)
-                  Obx(() {
-                    final hasError =
-                        controller.isPdfLoadError.value ||
-                        controller.effectivePdfUrl.value.isEmpty;
-                    final isLoaded = controller.isLoaded.value;
-                    if (hasError || !isLoaded) return const SizedBox.shrink();
+                    final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
+                    if (isUrlEmpty) return const SizedBox.shrink();
 
                     final mode = controller.activeMode.value;
                     final isBottomPanelActive =
@@ -571,15 +281,11 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                     );
                   }),
 
-                  // Layer 5: Bottom Tool Control Panel Overlay (Positioned bottom in Stack)
+                  // Layer 4: Bottom Tool Control Panel Overlay (Positioned bottom in Stack)
                   Obx(() {
-                    final hasError =
-                        controller.isPdfLoadError.value ||
-                        controller.effectivePdfUrl.value.isEmpty;
-                    final isLoaded = controller.isLoaded.value;
+                    final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
                     if (!userRole.canDraw ||
-                        hasError ||
-                        !isLoaded ||
+                        isUrlEmpty ||
                         controller.activeMode.value == AnnotationMode.view) {
                       return const SizedBox.shrink();
                     }
@@ -595,9 +301,8 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
   // Top Mode Selector Bar
   Widget _buildModeToolbar(BuildContext context) {
@@ -1105,99 +810,6 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
     );
   }
 
-  // Dialog for Exit Confirmation when Unsaved Changes Exist
-  void _showExitConfirmationDialog(
-    BuildContext context, {
-    required VoidCallback onExit,
-    VoidCallback? onStay,
-  }) {
-    final theme = Theme.of(context);
-
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            shape: BoxShape.rectangle,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.amber.shade800,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Are you sure you want to exit?',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'You have unsaved annotations on this PDF. Exiting now will discard your drawing and text changes.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Column(
-                children: [
-                  CustomOutlinedButton(
-                    title: 'Keep Editing',
-                    height: 48,
-                    onPressed: () {
-                      Get.back();
-                      if (onStay != null) onStay();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  CustomButton(
-                    title: 'Discard & Exit',
-                    icon: Icons.exit_to_app_rounded,
-                    backgroundColor: theme.colorScheme.error,
-                    textColor: theme.colorScheme.onError,
-                    height: 48,
-                    onPressed: () {
-                      Get.back();
-                      onExit();
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   // Dialog for Clearing All Annotations
   void _showClearAnnotationsDialog(BuildContext context) {

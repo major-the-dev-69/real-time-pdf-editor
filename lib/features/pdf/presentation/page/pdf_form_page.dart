@@ -21,8 +21,8 @@ class PdfFormPage extends GetView<PdfFormController> {
         title: Obx(
           () => Text(
             controller.isEditMode.value
-                ? 'Edit PDF Document'
-                : 'Upload New PDF',
+                ? 'Edit Document'
+                : 'Upload New Image',
           ),
         ),
         elevation: 0,
@@ -164,7 +164,7 @@ class PdfFormPage extends GetView<PdfFormController> {
                   controller: controller.titleController,
                   labelText: 'Document Title *',
                   hintText: 'e.g. Master Site Plan 2026',
-                  prefixIcon: AppAssets.icPdf,
+                  prefixIcon: Icons.description_outlined,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter document title';
@@ -194,7 +194,7 @@ class PdfFormPage extends GetView<PdfFormController> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'File Attachment',
+                  'Image Attachment',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -228,7 +228,7 @@ class PdfFormPage extends GetView<PdfFormController> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
-                              AppAssets.icPdf,
+                              Icons.image_outlined,
                               color: theme.colorScheme.primary,
                               size: 24,
                             ),
@@ -242,8 +242,8 @@ class PdfFormPage extends GetView<PdfFormController> {
                                   file != null
                                       ? file.path.split('/').last
                                       : (controller.isEditMode.value
-                                            ? 'Change PDF File (Optional)'
-                                            : 'Select PDF File *'),
+                                            ? 'Change Image File (Optional)'
+                                            : 'Select Image File *'),
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -254,7 +254,7 @@ class PdfFormPage extends GetView<PdfFormController> {
                                 Text(
                                   file != null
                                       ? '${(file.lengthSync() / 1024).toStringAsFixed(1)} KB'
-                                      : 'Tap to browse document files',
+                                      : 'Tap to browse image files (PNG, JPG, JPEG)',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: theme.colorScheme.onSurface
                                         .withValues(alpha: 0.6),
@@ -332,8 +332,8 @@ class PdfFormPage extends GetView<PdfFormController> {
                 Obx(
                   () => CustomButton(
                     title: controller.isEditMode.value
-                        ? 'Update PDF'
-                        : 'Upload PDF',
+                        ? 'Update Document'
+                        : 'Upload Image',
                     isLoading: controller.isLoading.value,
                     onPressed: controller.submitPdf,
                   ),

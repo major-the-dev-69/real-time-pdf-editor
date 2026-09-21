@@ -227,7 +227,7 @@ class PdfFormController extends GetxController {
     try {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['pdf'],
+        allowedExtensions: ['png', 'jpg', 'jpeg'],
       );
 
       if (result.first.path != null) {
@@ -261,7 +261,9 @@ class PdfFormController extends GetxController {
         return;
       }
       if (selectedFile.value == null) {
-        CustomSnackBar.showError(message: "Please select a PDF file to upload");
+        CustomSnackBar.showError(
+          message: "Please select an image file to upload",
+        );
         return;
       }
     }
@@ -314,7 +316,7 @@ class PdfFormController extends GetxController {
         CustomSnackBar.showError(message: response.message);
       }
     } catch (e) {
-      CustomSnackBar.showError(message: "Error submitting PDF: $e");
+      CustomSnackBar.showError(message: "Error submitting document: $e");
     } finally {
       isLoading.value = false;
     }

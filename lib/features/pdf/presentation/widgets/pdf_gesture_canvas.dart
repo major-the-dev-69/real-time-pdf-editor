@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,8 @@ import 'annotation_painter.dart';
 
 class PdfGestureCanvas extends StatefulWidget {
   final PdfEditController controller;
-  final Uint8List imageBytes;
+  final String imageUrl;
+  final Uint8List? imageBytes;
   final double pageRatio;
   final bool isLoaded;
   final AnnotationMode mode;
@@ -18,7 +20,8 @@ class PdfGestureCanvas extends StatefulWidget {
   const PdfGestureCanvas({
     super.key,
     required this.controller,
-    required this.imageBytes,
+    required this.imageUrl,
+    this.imageBytes,
     required this.pageRatio,
     required this.isLoaded,
     required this.mode,
@@ -371,12 +374,8 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // High-DPI Page Image
-                      Image.memory(
-                        widget.imageBytes,
-                        fit: BoxFit.contain,
-                        filterQuality: FilterQuality.high,
-                      ),
+                      // High-DPI Original Quality Image
+                      _buildImageView(context),
 
                       // Annotation Overlay Layer
                       if (widget.isLoaded)
@@ -418,5 +417,76 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
         );
       },
     );
+  }
+
+  Widget _buildImageView(BuildContext context) {
+    if (widget.imageUrl.startsWith('http://') ||
+        widget.imageUrl.startsWith('https://')) {
+      return Image.network(
+        widget.imageUrl,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return const Center(child: CircularProgressIndicator());
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.broken_image_rounded,
+                    size: 56,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Failed to load image',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } else if (widget.imageUrl.isNotEmpty &&
+        File(widget.imageUrl).existsSync()) {
+      return Image.file(
+        File(widget.imageUrl),
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.broken_image_rounded,
+                  size: 56,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(height: 12),
+                const Text('Failed to load local image'),
+              ],
+            ),
+          );
+        },
+      );
+    } else if (widget.imageBytes != null && widget.imageBytes!.isNotEmpty) {
+      return Image.memory(
+        widget.imageBytes!,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
   }
 }
