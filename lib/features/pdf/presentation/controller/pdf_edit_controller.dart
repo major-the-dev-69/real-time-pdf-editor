@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -1163,75 +1164,187 @@ class PdfEditController extends GetxController {
     }
   }
 
-  // Eraser Logic
+  // --- Geometric Distance Helpers for Precise Erasing ---
+  double _distanceToSegment(Offset p, Offset a, Offset b) {
+    final dx = b.dx - a.dx;
+    final dy = b.dy - a.dy;
+    final lengthSquared = dx * dx + dy * dy;
+
+    if (lengthSquared == 0) {
+      return (p - a).distance;
+    }
+
+    final t = (((p.dx - a.dx) * dx + (p.dy - a.dy) * dy) / lengthSquared)
+        .clamp(0.0, 1.0);
+
+    final projX = a.dx + t * dx;
+    final projY = a.dy + t * dy;
+
+    final diffX = p.dx - projX;
+    final diffY = p.dy - projY;
+    return math.sqrt(diffX * diffX + diffY * diffY);
+  }
+
+  double _distanceToDrawnLine(DrawnLine line, Offset position, Size renderSize) {
+    if (line.points.isEmpty) return double.infinity;
+
+    final pxPoints = line.points.map((pt) {
+      return renderSize != Size.zero ? toPixelPoint(pt, renderSize) : pt;
+    }).toList();
+
+    if (pxPoints.length == 1) {
+      return (pxPoints.first - position).distance;
+    }
+
+    double minDistance = double.infinity;
+    for (int i = 0; i < pxPoints.length - 1; i++) {
+      final dist = _distanceToSegment(position, pxPoints[i], pxPoints[i + 1]);
+      if (dist < minDistance) {
+        minDistance = dist;
+      }
+    }
+    return minDistance;
+  }
+
+  double _distanceToTextAnnotation(
+    TextAnnotation textAnn,
+    Offset position,
+    Size renderSize,
+  ) {
+    final pxPt = renderSize != Size.zero
+        ? toPixelPoint(textAnn.position, renderSize)
+        : textAnn.position;
+
+    final painter = TextPainter(
+      text: TextSpan(
+        text: textAnn.text,
+        style: TextStyle(
+          fontSize: textAnn.fontSize,
+          fontWeight: textAnn.fontWeight,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final rect = Rect.fromLTWH(
+      pxPt.dx,
+      pxPt.dy,
+      painter.width,
+      painter.height,
+    );
+
+    if (rect.contains(position)) {
+      return 0.0;
+    }
+
+    final dx = position.dx < rect.left
+        ? rect.left - position.dx
+        : (position.dx > rect.right ? position.dx - rect.right : 0.0);
+    final dy = position.dy < rect.top
+        ? rect.top - position.dy
+        : (position.dy > rect.bottom ? position.dy - rect.bottom : 0.0);
+
+    return math.sqrt(dx * dx + dy * dy);
+  }
+
+  double _distanceToCrossAnnotation(
+    CrossAnnotation crossAnn,
+    Offset position,
+    Size renderSize,
+  ) {
+    final center = renderSize != Size.zero
+        ? toPixelPoint(crossAnn.position, renderSize)
+        : crossAnn.position;
+    final half = crossAnn.size / 2;
+    final rect = Rect.fromLTWH(
+      center.dx - half,
+      center.dy - half,
+      crossAnn.size,
+      crossAnn.size,
+    );
+
+    if (rect.contains(position)) {
+      return 0.0;
+    }
+
+    final dx = position.dx < rect.left
+        ? rect.left - position.dx
+        : (position.dx > rect.right ? position.dx - rect.right : 0.0);
+    final dy = position.dy < rect.top
+        ? rect.top - position.dy
+        : (position.dy > rect.bottom ? position.dy - rect.bottom : 0.0);
+
+    return math.sqrt(dx * dx + dy * dy);
+  }
+
+  // Eraser Logic - 100% Accurate Nearest Hit Detection
   Future<void> eraseNear(Offset position, [Size renderSize = Size.zero]) async {
-    const threshold = 25.0;
     final targetPage = currentPage.value;
 
-    DrawnLine? lineToRemove;
+    dynamic closestAnnotation;
+    double minDistance = double.infinity;
+
+    // 1. Evaluate Drawn Lines (Strokes)
     for (int i = lines.length - 1; i >= 0; i--) {
       final line = lines[i];
       if (line.pageNumber != targetPage && line.pageNumber > 0) continue;
-      final hit = line.points.any((pt) {
-        final pxPt = renderSize != Size.zero
-            ? toPixelPoint(pt, renderSize)
-            : pt;
-        return (pxPt - position).distance <= threshold;
-      });
-      if (hit) {
-        lineToRemove = line;
-        break;
+
+      final dist = _distanceToDrawnLine(line, position, renderSize);
+      final maxAllowed = (line.strokeWidth / 2) + 12.0;
+
+      if (dist <= maxAllowed && dist < minDistance) {
+        minDistance = dist;
+        closestAnnotation = line;
       }
     }
 
-    if (lineToRemove != null) {
-      lines.remove(lineToRemove);
-      if (lineToRemove.id.isNotEmpty) {
-        await deleteAnnotationApi(lineToRemove.id);
-      }
-      return;
-    }
-
-    TextAnnotation? textToRemove;
+    // 2. Evaluate Text Annotations
     for (int i = textAnnotations.length - 1; i >= 0; i--) {
       final textAnn = textAnnotations[i];
       if (textAnn.pageNumber != targetPage && textAnn.pageNumber > 0) continue;
-      final pxPt = renderSize != Size.zero
-          ? toPixelPoint(textAnn.position, renderSize)
-          : textAnn.position;
-      if ((pxPt - position).distance <= threshold) {
-        textToRemove = textAnn;
-        break;
+
+      final dist = _distanceToTextAnnotation(textAnn, position, renderSize);
+      const maxAllowed = 12.0;
+
+      if (dist <= maxAllowed && dist < minDistance) {
+        minDistance = dist;
+        closestAnnotation = textAnn;
       }
     }
 
-    if (textToRemove != null) {
-      textAnnotations.remove(textToRemove);
-      if (textToRemove.id.isNotEmpty) {
-        await deleteAnnotationApi(textToRemove.id);
-      }
-      return;
-    }
-
-    CrossAnnotation? crossToRemove;
+    // 3. Evaluate Cross Annotations
     for (int i = crossAnnotations.length - 1; i >= 0; i--) {
       final crossAnn = crossAnnotations[i];
       if (crossAnn.pageNumber != targetPage && crossAnn.pageNumber > 0) {
         continue;
       }
-      final pxPt = renderSize != Size.zero
-          ? toPixelPoint(crossAnn.position, renderSize)
-          : crossAnn.position;
-      if ((pxPt - position).distance <= threshold) {
-        crossToRemove = crossAnn;
-        break;
+
+      final dist = _distanceToCrossAnnotation(crossAnn, position, renderSize);
+      final maxAllowed = (crossAnn.size / 2) + 10.0;
+
+      if (dist <= maxAllowed && dist < minDistance) {
+        minDistance = dist;
+        closestAnnotation = crossAnn;
       }
     }
 
-    if (crossToRemove != null) {
-      crossAnnotations.remove(crossToRemove);
-      if (crossToRemove.id.isNotEmpty) {
-        await deleteAnnotationApi(crossToRemove.id);
+    // Delete ONLY the single closest candidate found
+    if (closestAnnotation != null) {
+      if (closestAnnotation is DrawnLine) {
+        lines.remove(closestAnnotation);
+        if (closestAnnotation.id.isNotEmpty) {
+          await deleteAnnotationApi(closestAnnotation.id);
+        }
+      } else if (closestAnnotation is TextAnnotation) {
+        textAnnotations.remove(closestAnnotation);
+        if (closestAnnotation.id.isNotEmpty) {
+          await deleteAnnotationApi(closestAnnotation.id);
+        }
+      } else if (closestAnnotation is CrossAnnotation) {
+        crossAnnotations.remove(closestAnnotation);
+        if (closestAnnotation.id.isNotEmpty) {
+          await deleteAnnotationApi(closestAnnotation.id);
+        }
       }
     }
   }
@@ -1247,7 +1360,6 @@ class PdfEditController extends GetxController {
     await clearPageAnnotationsApi(pageNo);
   }
 
-  // Undo Last Action
   Future<void> undo() async {
     final targetPage = currentPage.value;
     if (lines.any((l) => l.pageNumber == targetPage)) {

@@ -41,6 +41,7 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
   Offset? _singleTouchDownPos;
   DateTime? _singleTouchDownTime;
   bool _isSingleTouchMoved = false;
+  Offset? _lastErasePoint;
 
   Size _getPageSize(Size viewportSize, double ratio) {
     if (ratio <= 0) return viewportSize;
@@ -77,6 +78,7 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
 
     if (_activePointers.length >= 2) {
       _isMultiTouch = true;
+      _lastErasePoint = null;
 
       // Cancel any ongoing single-touch drawing or text drag
       if (widget.controller.currentLine.value != null) {
@@ -124,6 +126,7 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
       } else if (widget.mode == AnnotationMode.draw && isInsidePage) {
         widget.controller.startLine(pageLocalPoint, pageSize);
       } else if (widget.mode == AnnotationMode.erase && isInsidePage) {
+        _lastErasePoint = pageLocalPoint;
         widget.controller.eraseNear(pageLocalPoint, pageSize);
       }
     }
@@ -229,7 +232,11 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
           viewportSize,
           pageSize,
         );
-        widget.controller.eraseNear(pageLocalPoint, pageSize);
+        if (_lastErasePoint == null ||
+            (pageLocalPoint - _lastErasePoint!).distance >= 14.0) {
+          _lastErasePoint = pageLocalPoint;
+          widget.controller.eraseNear(pageLocalPoint, pageSize);
+        }
       }
     }
   }
@@ -238,6 +245,7 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
     _activePointers.remove(event.pointer);
 
     if (_activePointers.isEmpty) {
+      _lastErasePoint = null;
       if (_isMultiTouch) {
         _isMultiTouch = false;
         _lastFocalPoint = null;
@@ -288,8 +296,6 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
               }
             } else if (widget.mode == AnnotationMode.cross && isInsidePage) {
               widget.controller.addCrossAnnotation(pageLocalPoint, pageSize);
-            } else if (widget.mode == AnnotationMode.erase && isInsidePage) {
-              widget.controller.eraseNear(pageLocalPoint, pageSize);
             }
           }
         }
@@ -306,6 +312,7 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
       _isMultiTouch = false;
       _lastFocalPoint = null;
       _lastSpan = null;
+      _lastErasePoint = null;
       if (widget.mode == AnnotationMode.draw) {
         widget.controller.endLine();
       } else if (widget.mode == AnnotationMode.text &&
