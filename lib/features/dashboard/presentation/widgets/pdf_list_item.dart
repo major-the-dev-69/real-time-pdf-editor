@@ -140,7 +140,7 @@ class PdfListItem extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          '${pdf.relativeDate} • ${pdf.fileSize}',
+                          '${pdf.relativeDate} • ${pdf.formattedFileSize}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 11,
                             color: theme.colorScheme.onSurface.withValues(
@@ -148,39 +148,6 @@ class PdfListItem extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const Spacer(),
-                        if (pdf.sharedAvatars.isNotEmpty)
-                          SizedBox(
-                            height: 22,
-                            width: (pdf.sharedAvatars.length * 14.0) + 10,
-                            child: Stack(
-                              children: List.generate(
-                                pdf.sharedAvatars.length > 3
-                                    ? 3
-                                    : pdf.sharedAvatars.length,
-                                (index) {
-                                  return Positioned(
-                                    left: index * 12.0,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: theme.scaffoldBackgroundColor,
-                                          width: 1.5,
-                                        ),
-                                      ),
-                                      child: CircleAvatar(
-                                        radius: 10,
-                                        backgroundImage: NetworkImage(
-                                          pdf.sharedAvatars[index],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
                       ],
                     ),
                   ],

@@ -70,15 +70,17 @@ class PdfDetailController extends GetxController {
 
   Future<void> copyLink() async {
     final pdf = pdfDocument.value;
-    if (pdf == null || pdf.pdfUrl.isEmpty) {
+    if (pdf == null) {
       CustomSnackBar.showError(
-        message: 'PDF document URL is invalid or unavailable',
+        message: 'PDF document is invalid or unavailable',
       );
       return;
     }
+    final currentRoute = Get.currentRoute;
+    final deepLink = '${ApiConstants.baseUrl}$currentRoute?id=${pdf.id}';
 
     try {
-      await Clipboard.setData(ClipboardData(text: pdf.pdfUrl));
+      await Clipboard.setData(ClipboardData(text: deepLink));
       CustomSnackBar.showSuccess(
         title: 'Link Copied',
         message: 'PDF link copied to clipboard!',

@@ -220,7 +220,7 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                       context,
                       icon: AppAssets.icPdfFile,
                       label: 'File Size',
-                      value: pdf.fileSize,
+                      value: pdf.formattedFileSize,
                     ),
                   ],
                 ),
@@ -265,9 +265,7 @@ class PdfDetailPage extends GetView<PdfDetailController> {
                   },
                   icon: const Icon(AppAssets.icEyeView, size: 22),
                   label: Text(
-                    SharedPrefManager().userRoleEnum.canDraw
-                        ? 'Open & Edit PDF Document'
-                        : 'Open & View PDF Document',
+                    _getOpenPdfButtonTitle(),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -365,5 +363,15 @@ class PdfDetailPage extends GetView<PdfDetailController> {
         ),
       ],
     );
+  }
+
+  String _getOpenPdfButtonTitle() {
+    if (SharedPrefManager().userRoleEnum.canDraw) {
+      return 'Open & Edit PDF Document';
+    }
+    if (SharedPrefManager().userRoleEnum.canUploadPdf) {
+      return 'Open & View PDF Document';
+    }
+    return 'Open PDF';
   }
 }

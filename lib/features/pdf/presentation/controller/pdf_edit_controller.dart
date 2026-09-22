@@ -252,42 +252,6 @@ class PdfEditController extends GetxController {
     if (args is PdfDocumentModel) {
       pdfDocument.value = args;
       fetchPdfDetails(args.id);
-    } else if (args is File && args.existsSync()) {
-      effectivePdfUrl.value = args.path;
-      _resolveImageDimensions(args.path);
-    } else if (args is String && args.isNotEmpty) {
-      if (args.startsWith('http://') ||
-          args.startsWith('https://') ||
-          File(args).existsSync()) {
-        effectivePdfUrl.value = args;
-        _resolveImageDimensions(args);
-      } else {
-        fetchPdfDetails(args);
-      }
-    } else if (args is Map<String, dynamic>) {
-      if (args['pdf'] is PdfDocumentModel) {
-        pdfDocument.value = args['pdf'] as PdfDocumentModel;
-      }
-      if (args['file'] is File && (args['file'] as File).existsSync()) {
-        effectivePdfUrl.value = (args['file'] as File).path;
-        _resolveImageDimensions(effectivePdfUrl.value);
-      } else if (args['path'] is String && File(args['path']).existsSync()) {
-        effectivePdfUrl.value = args['path'];
-        _resolveImageDimensions(effectivePdfUrl.value);
-      } else if (args['url'] is String &&
-          (args['url'].toString().startsWith('http://') ||
-              args['url'].toString().startsWith('https://'))) {
-        effectivePdfUrl.value = args['url'];
-        _resolveImageDimensions(effectivePdfUrl.value);
-      }
-      final uuid =
-          args['uuid']?.toString() ??
-          args['id']?.toString() ??
-          args['pdf_uuid']?.toString() ??
-          '';
-      if (uuid.isNotEmpty) {
-        fetchPdfDetails(uuid);
-      }
     }
     updatePdfUrlFromModel();
   }
@@ -1174,8 +1138,10 @@ class PdfEditController extends GetxController {
       return (p - a).distance;
     }
 
-    final t = (((p.dx - a.dx) * dx + (p.dy - a.dy) * dy) / lengthSquared)
-        .clamp(0.0, 1.0);
+    final t = (((p.dx - a.dx) * dx + (p.dy - a.dy) * dy) / lengthSquared).clamp(
+      0.0,
+      1.0,
+    );
 
     final projX = a.dx + t * dx;
     final projY = a.dy + t * dy;
@@ -1185,7 +1151,11 @@ class PdfEditController extends GetxController {
     return math.sqrt(diffX * diffX + diffY * diffY);
   }
 
-  double _distanceToDrawnLine(DrawnLine line, Offset position, Size renderSize) {
+  double _distanceToDrawnLine(
+    DrawnLine line,
+    Offset position,
+    Size renderSize,
+  ) {
     if (line.points.isEmpty) return double.infinity;
 
     final pxPoints = line.points.map((pt) {
@@ -1226,12 +1196,7 @@ class PdfEditController extends GetxController {
       textDirection: TextDirection.ltr,
     )..layout();
 
-    final rect = Rect.fromLTWH(
-      pxPt.dx,
-      pxPt.dy,
-      painter.width,
-      painter.height,
-    );
+    final rect = Rect.fromLTWH(pxPt.dx, pxPt.dy, painter.width, painter.height);
 
     if (rect.contains(position)) {
       return 0.0;
