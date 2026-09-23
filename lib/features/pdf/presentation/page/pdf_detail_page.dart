@@ -87,6 +87,11 @@ class PdfDetailPage extends GetView<PdfDetailController> {
       ),
       body: Obx(() {
         final pdf = controller.pdfDocument.value;
+
+        if (controller.isFetchingDetails.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         if (pdf == null) {
           return const Center(child: Text('No PDF Document selected'));
         }

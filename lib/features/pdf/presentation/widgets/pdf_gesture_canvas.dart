@@ -1,15 +1,17 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sai_associates/core/helper/logger_helper.dart';
+import 'package:sai_associates/core/network/api_constants.dart';
 
+import '../../../../db/shared_pref_manager.dart';
 import '../controller/pdf_edit_controller.dart';
 import 'annotation_painter.dart';
 
 class PdfGestureCanvas extends StatefulWidget {
   final PdfEditController controller;
-  final String imageUrl;
+  final String imgUrl;
   final Uint8List? imageBytes;
   final double pageRatio;
   final bool isLoaded;
@@ -20,7 +22,7 @@ class PdfGestureCanvas extends StatefulWidget {
   const PdfGestureCanvas({
     super.key,
     required this.controller,
-    required this.imageUrl,
+    required this.imgUrl,
     this.imageBytes,
     required this.pageRatio,
     required this.isLoaded,
@@ -427,50 +429,20 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
   }
 
   Widget _buildImageView(BuildContext context) {
-    if (widget.imageUrl.startsWith('http://') ||
-        widget.imageUrl.startsWith('https://')) {
-      return Image.network(
-        widget.imageUrl,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return const Center(child: CircularProgressIndicator());
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.broken_image_rounded,
-                    size: 56,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Failed to load image',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    } else if (widget.imageUrl.isNotEmpty &&
-        File(widget.imageUrl).existsSync()) {
-      return Image.file(
-        File(widget.imageUrl),
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-        errorBuilder: (context, error, stackTrace) {
-          return Center(
+    return Image.network(
+      widget.imgUrl,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return _buildLoadingProgress(context, progress);
+      },
+      headers: _getHeaders(),
+      errorBuilder: (context, error, stackTrace) {
+        printMessage("⚠️ PDF Error: $error -> $stackTrace");
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -480,20 +452,181 @@ class _PdfGestureCanvasState extends State<PdfGestureCanvas> {
                   color: Theme.of(context).colorScheme.error,
                 ),
                 const SizedBox(height: 12),
-                const Text('Failed to load local image'),
+                Text(
+                  'Failed to load image',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
-          );
-        },
-      );
-    } else if (widget.imageBytes != null && widget.imageBytes!.isNotEmpty) {
-      return Image.memory(
-        widget.imageBytes!,
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.high,
-      );
-    } else {
-      return const SizedBox.shrink();
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingProgress(BuildContext context, ImageChunkEvent progress) {
+    final theme = Theme.of(context);
+    final loadedBytes = progress.cumulativeBytesLoaded;
+    final totalBytes = progress.expectedTotalBytes;
+
+    final double? percent = totalBytes != null && totalBytes > 0
+        ? (loadedBytes / totalBytes).clamp(0.0, 1.0)
+        : null;
+
+    final loadedMbStr = _formatBytes(loadedBytes);
+    final totalMbStr = totalBytes != null ? _formatBytes(totalBytes) : null;
+    final leftBytes = (totalBytes != null && totalBytes > loadedBytes)
+        ? totalBytes - loadedBytes
+        : 0;
+    final leftMbStr = totalBytes != null ? _formatBytes(leftBytes) : null;
+
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 32),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      value: percent,
+                      strokeWidth: 2.5,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Loading Document Image',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        percent != null
+                            ? '${(percent * 100).toInt()}% completed'
+                            : 'Downloading document...',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LinearProgressIndicator(
+                value: percent,
+                minHeight: 8,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_download_rounded,
+                      size: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      totalMbStr != null
+                          ? '$loadedMbStr / $totalMbStr'
+                          : loadedMbStr,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                if (leftMbStr != null && leftBytes > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer.withValues(
+                        alpha: 0.6,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$leftMbStr left',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes <= 0) return "0 B";
+    if (bytes < 1024) return "$bytes B";
+    if (bytes < 1024 * 1024) {
+      return "${(bytes / 1024).toStringAsFixed(1)} KB";
     }
+    return "${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB";
+  }
+
+  Map<String, String> _getHeaders() {
+    final headers = <String, String>{};
+    final token = SharedPrefManager().userToken;
+    headers[ApiKeys.authorization] = "Bearer $token";
+    return headers;
   }
 }

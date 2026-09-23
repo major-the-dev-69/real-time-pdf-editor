@@ -69,7 +69,7 @@ class DashboardController extends GetxController {
     }
   }
 
-  Future<void> fetchProjects() async {
+  Future<void> fetchProjects({bool isRefresh = false}) async {
     try {
       final response = await Get.find<ApiServices>().callGetApi(
         ApiConstants.projects,
@@ -105,7 +105,7 @@ class DashboardController extends GetxController {
     if (searchQuery.value.trim().isEmpty) {
       return allPdfs;
     }
-    
+
     return allPdfs.where((pdf) {
       // Search Query Filter
       if (searchQuery.value.trim().isNotEmpty) {
@@ -122,7 +122,7 @@ class DashboardController extends GetxController {
 
   Future<void> fetchSitesForProject(String projId) async {
     if (projId.isEmpty) return;
-    
+
     allSites.clear();
     allPdfs.clear();
     selectedSiteId.value = '';

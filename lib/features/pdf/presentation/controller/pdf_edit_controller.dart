@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
+import 'package:sai_associates/core/network/api_constants.dart';
 
 import '../../../../core/helper/logger_helper.dart';
 import '../../../../core/network/api_services.dart';
@@ -68,38 +69,6 @@ class PdfEditController extends GetxController {
       stream.addListener(listener);
     } catch (e) {
       printMessage("⚠️ Error setting up image stream: $e");
-    }
-  }
-
-  Future<void> loadPdfFile(String url) async => loadImageFile(url);
-
-  Future<void> loadImageFile(String url) async {
-    effectivePdfUrl.value = url;
-    _resolveImageDimensions(url);
-  }
-
-  Future<void> renderPage(int pageNumber) async {}
-
-  Future<void> goToNextPage() async {
-    if (currentPage.value < totalPages.value) {
-      currentPage.value++;
-      resetZoom();
-    }
-  }
-
-  Future<void> goToPreviousPage() async {
-    if (currentPage.value > 1) {
-      currentPage.value--;
-      resetZoom();
-    }
-  }
-
-  Future<void> goToPage(int pageNo) async {
-    if (pageNo >= 1 &&
-        pageNo <= totalPages.value &&
-        pageNo != currentPage.value) {
-      currentPage.value = pageNo;
-      resetZoom();
     }
   }
 
@@ -237,7 +206,7 @@ class PdfEditController extends GetxController {
 
   String currentPusherChannel = '';
 
-  final effectivePdfUrl = ''.obs;
+  final pdfUrl = ''.obs;
   final isPdfLoadError = false.obs;
 
   @override
@@ -257,10 +226,11 @@ class PdfEditController extends GetxController {
   }
 
   void updatePdfUrlFromModel() {
-    final modelUrl = pdfDocument.value?.pdfUrl.trim() ?? '';
-    if (modelUrl.isNotEmpty) {
-      effectivePdfUrl.value = modelUrl;
-      _resolveImageDimensions(modelUrl);
+    final id = pdfDocument.value?.uuid.trim() ?? '';
+    if (id.isNotEmpty) {
+      pdfUrl.value = "${ApiConstants.docs}/$id";
+      printMessage("updatePdfUrlFromModel : $pdfUrl");
+      _resolveImageDimensions(id);
     }
   }
 

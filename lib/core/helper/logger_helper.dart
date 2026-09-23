@@ -1,5 +1,7 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
+
 void printMessage(String message) {
-  log(message);
+  if (kDebugMode) log(message);
 }

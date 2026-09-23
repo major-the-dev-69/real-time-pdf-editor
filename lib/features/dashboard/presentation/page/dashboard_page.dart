@@ -46,7 +46,11 @@ class DashboardPage extends GetView<DashboardController> {
           final selectedSiteId = controller.selectedSiteId.value;
 
           return RefreshIndicator(
-            onRefresh: controller.fetchProjects,
+            onRefresh: () async {
+              await controller.fetchProjects(isRefresh: true);
+              await controller.fetchSitesForProject(selectedProjId);
+              await controller.fetchPdfsForSite(selectedSiteId);
+            },
             child: CustomScrollView(
               slivers: [
                 // Pinned AppBar at Top

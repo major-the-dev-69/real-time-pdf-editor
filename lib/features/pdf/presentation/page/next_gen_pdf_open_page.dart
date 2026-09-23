@@ -71,7 +71,7 @@ class _NextGenPdfOpenPageState extends State<NextGenPdfOpenPage> {
         pdfUrl = args;
       } else if (Get.isRegistered<PdfEditController>()) {
         final controller = Get.find<PdfEditController>();
-        pdfUrl = controller.effectivePdfUrl.value;
+        pdfUrl = controller.pdfUrl.value;
       } else if (Get.isRegistered<PdfDetailController>()) {
         final controller = Get.find<PdfDetailController>();
         pdfUrl = controller.pdfDocument.value?.pdfUrl;

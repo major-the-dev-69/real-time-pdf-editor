@@ -45,209 +45,220 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
           icon: const Icon(AppAssets.backArrow),
           onPressed: Get.back,
         ),
-          actions: [
-            Obx(() {
-              final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
-              if (isUrlEmpty) return const SizedBox.shrink();
+        actions: [
+          Obx(() {
+            final isUrlEmpty = controller.pdfUrl.value.isEmpty;
+            if (isUrlEmpty) return const SizedBox.shrink();
 
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (controller.zoomScale.value > 1.05) ...[
-                    const SizedBox(width: 6),
-                    Tooltip(
-                      message: 'Tap to reset zoom (100%)',
-                      child: InkWell(
-                        onTap: controller.resetZoom,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          margin: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${(controller.zoomScale.value * 100).round()}%',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.restart_alt_rounded,
-                                size: 14,
-                                color: theme.colorScheme.onPrimaryContainer,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(width: 8),
-
-                  // Action: Undo
-                  if (userRole.canUndo)
-                    IconButton(
-                      icon: const Icon(Icons.undo_rounded),
-                      tooltip: 'Undo',
-                      onPressed: controller.undo,
-                    ),
-
-                  // Action: Clear All
-                  if (userRole.canClearAll)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded),
-                      tooltip: 'Clear Annotations',
-                      onPressed: () => _showClearAnnotationsDialog(context),
-                    ),
-                ],
-              );
-            }),
-          ],
-        ),
-        body: Column(
-          children: [
-            // Mode Switcher Header Toolbar
-            Obx(() {
-              final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
-              if (!userRole.canDraw || isUrlEmpty) {
-                return const SizedBox.shrink();
-              }
-              return _buildModeToolbar(context);
-            }),
-
-            // Image Viewer Canvas & Interactive Annotation Layer Stack
-            Expanded(
-              child: Stack(
-                children: [
-                  // Main Zoomable Image Canvas & Interactive Annotation Layer
-                  Obx(() {
-                    final imageUrl = controller.effectivePdfUrl.value;
-                    final isLoaded = controller.isLoaded.value;
-                    final mode = controller.activeMode.value;
-
-                    return PdfGestureCanvas(
-                      controller: controller,
-                      imageUrl: imageUrl,
-                      pageRatio: controller.pageAspectRatio.value,
-                      isLoaded: isLoaded,
-                      mode: mode,
-                      onShowAddTextDialog: (dialogCtx, position, renderSize) {
-                        _showAddTextDialog(dialogCtx, position, renderSize);
-                      },
-                    );
-                  }),
-
-                  // Layer 2: View Mode Active Indicator Banner
-                  Obx(() {
-                    final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
-                    if (isUrlEmpty ||
-                        controller.activeMode.value == AnnotationMode.view) {
-                      return const SizedBox.shrink();
-                    }
-                    return Positioned(
-                      top: 6,
-                      left: 20,
-                      right: 20,
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (controller.zoomScale.value > 1.05) ...[
+                  const SizedBox(width: 6),
+                  Tooltip(
+                    message: 'Tap to reset zoom (100%)',
+                    child: InkWell(
+                      onTap: controller.resetZoom,
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                          horizontal: 8,
+                          vertical: 4,
                         ),
+                        margin: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer.withValues(
-                            alpha: 0.9,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 8,
-                              offset: Offset(0, 3),
-                            ),
-                          ],
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              _getModeIcon(controller.activeMode.value),
-                              size: 16,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                _getModeInstruction(
-                                  controller.activeMode.value,
-                                ),
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                            Text(
+                              '${(controller.zoomScale.value * 100).round()}%',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onPrimaryContainer,
                               ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.restart_alt_rounded,
+                              size: 14,
+                              color: theme.colorScheme.onPrimaryContainer,
                             ),
                           ],
                         ),
                       ),
-                    );
-                  }),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 8),
 
-                  // Layer 3: Floating Zoom Controls (Zoom In, Zoom Out, Reset Zoom)
-                  Obx(() {
-                    final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
-                    if (isUrlEmpty) return const SizedBox.shrink();
+                // Action: Undo
+                if (userRole.canUndo)
+                  IconButton(
+                    icon: const Icon(Icons.undo_rounded),
+                    tooltip: 'Undo',
+                    onPressed: controller.undo,
+                  ),
 
-                    final mode = controller.activeMode.value;
-                    final isBottomPanelActive =
-                        userRole.canDraw && mode != AnnotationMode.view;
-                    final double bottomOffset = isBottomPanelActive
-                        ? ((mode == AnnotationMode.draw ||
-                                  mode == AnnotationMode.text)
-                              ? 145.0
-                              : 75.0)
-                        : context.mediaQueryPadding.bottom + 16;
+                // Action: Clear All
+                if (userRole.canClearAll)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    tooltip: 'Clear Annotations',
+                    onPressed: () => _showClearAnnotationsDialog(context),
+                  ),
+              ],
+            );
+          }),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Mode Switcher Header Toolbar
+          Obx(() {
+            final isUrlEmpty = controller.pdfUrl.value.isEmpty;
+            if (!userRole.canDraw || isUrlEmpty) {
+              return const SizedBox.shrink();
+            }
+            return _buildModeToolbar(context);
+          }),
 
-                    return Positioned(
-                      bottom: bottomOffset,
-                      right: 16,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface.withValues(
-                            alpha: 0.92,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: theme.colorScheme.outlineVariant.withValues(
-                              alpha: 0.6,
-                            ),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+          // Image Viewer Canvas & Interactive Annotation Layer Stack
+          Expanded(
+            child: Stack(
+              children: [
+                // Main Zoomable Image Canvas & Interactive Annotation Layer
+                Obx(() {
+                  final imgUrl = controller.pdfUrl.value;
+                  final isLoaded = controller.isLoaded.value;
+                  final mode = controller.activeMode.value;
+
+                  return PdfGestureCanvas(
+                    controller: controller,
+                    imgUrl: imgUrl,
+                    pageRatio: controller.pageAspectRatio.value,
+                    isLoaded: isLoaded,
+                    mode: mode,
+                    onShowAddTextDialog: (dialogCtx, position, renderSize) {
+                      _showAddTextDialog(dialogCtx, position, renderSize);
+                    },
+                  );
+                }),
+
+                // Layer 2: View Mode Active Indicator Banner
+                Obx(() {
+                  final isUrlEmpty = controller.pdfUrl.value.isEmpty;
+                  if (isUrlEmpty ||
+                      controller.activeMode.value == AnnotationMode.view) {
+                    return const SizedBox.shrink();
+                  }
+                  return Positioned(
+                    top: 6,
+                    left: 20,
+                    right: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.9,
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.add_rounded, size: 20),
-                              tooltip: 'Zoom In',
-                              onPressed: () => controller.zoomIn(),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _getModeIcon(controller.activeMode.value),
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              _getModeInstruction(controller.activeMode.value),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+
+                // Layer 3: Floating Zoom Controls (Zoom In, Zoom Out, Reset Zoom)
+                Obx(() {
+                  final isUrlEmpty = controller.pdfUrl.value.isEmpty;
+                  if (isUrlEmpty) return const SizedBox.shrink();
+
+                  final mode = controller.activeMode.value;
+                  final isBottomPanelActive =
+                      userRole.canDraw && mode != AnnotationMode.view;
+                  final double bottomOffset = isBottomPanelActive
+                      ? ((mode == AnnotationMode.draw ||
+                                mode == AnnotationMode.text)
+                            ? 145.0
+                            : 75.0)
+                      : context.mediaQueryPadding.bottom + 16;
+
+                  return Positioned(
+                    bottom: bottomOffset,
+                    right: 16,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(
+                          alpha: 0.92,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.add_rounded, size: 20),
+                            tooltip: 'Zoom In',
+                            onPressed: () => controller.zoomIn(),
+                          ),
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: theme.colorScheme.outlineVariant.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.remove_rounded, size: 20),
+                            tooltip: 'Zoom Out',
+                            onPressed: () => controller.zoomOut(),
+                          ),
+                          if (controller.zoomScale.value > 1.05) ...[
                             Divider(
                               height: 1,
                               thickness: 1,
@@ -255,54 +266,42 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
                                   .withValues(alpha: 0.5),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.remove_rounded, size: 20),
-                              tooltip: 'Zoom Out',
-                              onPressed: () => controller.zoomOut(),
+                              icon: const Icon(
+                                Icons.restart_alt_rounded,
+                                size: 18,
+                              ),
+                              tooltip: 'Reset Zoom (100%)',
+                              onPressed: () => controller.resetZoom(),
                             ),
-                            if (controller.zoomScale.value > 1.05) ...[
-                              Divider(
-                                height: 1,
-                                thickness: 1,
-                                color: theme.colorScheme.outlineVariant
-                                    .withValues(alpha: 0.5),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.restart_alt_rounded,
-                                  size: 18,
-                                ),
-                                tooltip: 'Reset Zoom (100%)',
-                                onPressed: () => controller.resetZoom(),
-                              ),
-                            ],
                           ],
-                        ),
+                        ],
                       ),
-                    );
-                  }),
+                    ),
+                  );
+                }),
 
-                  // Layer 4: Bottom Tool Control Panel Overlay (Positioned bottom in Stack)
-                  Obx(() {
-                    final isUrlEmpty = controller.effectivePdfUrl.value.isEmpty;
-                    if (!userRole.canDraw ||
-                        isUrlEmpty ||
-                        controller.activeMode.value == AnnotationMode.view) {
-                      return const SizedBox.shrink();
-                    }
-                    return Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: _buildBottomControlPanel(context),
-                    );
-                  }),
-                ],
-              ),
+                // Layer 4: Bottom Tool Control Panel Overlay (Positioned bottom in Stack)
+                Obx(() {
+                  final isUrlEmpty = controller.pdfUrl.value.isEmpty;
+                  if (!userRole.canDraw ||
+                      isUrlEmpty ||
+                      controller.activeMode.value == AnnotationMode.view) {
+                    return const SizedBox.shrink();
+                  }
+                  return Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: _buildBottomControlPanel(context),
+                  );
+                }),
+              ],
             ),
-          ],
-        ),
-      );
-    }
+          ),
+        ],
+      ),
+    );
+  }
 
   // Top Mode Selector Bar
   Widget _buildModeToolbar(BuildContext context) {
@@ -809,7 +808,6 @@ class _PdfOpenPageState extends State<PdfOpenPage> {
       ),
     );
   }
-
 
   // Dialog for Clearing All Annotations
   void _showClearAnnotationsDialog(BuildContext context) {

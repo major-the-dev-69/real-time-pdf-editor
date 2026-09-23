@@ -9,6 +9,7 @@ class ApiConstants {
   static const projects = "projects";
   static const sites = "sites";
   static const users = "users";
+  static const docs = "${apiBaseUrl}documents";
 
   static const sendOtp = "forgot-password/send-otp";
   static const verifyOtp = "forgot-password/verify-otp";
@@ -16,7 +17,6 @@ class ApiConstants {
 
   static const xApiKey = "x-api-key";
   static const xApiValue = "OPT-pCMr6da5EC2mC6p1OA8aW3znkrF2T3cg";
-  static const authorization = "Authorization";
 }
 
 class ApiKeys {
@@ -25,4 +25,6 @@ class ApiKeys {
   static const String success = "status";
   static const String response = "data";
   static const String message = "Message";
+
+  static const authorization = "Authorization";
 }

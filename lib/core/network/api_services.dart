@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide FormData, Response;
 import 'package:sai_associates/app/app_routes.dart';
 
@@ -39,13 +40,14 @@ class ApiServices extends GetxService {
   }
 
   LogInterceptor _buildLogger() {
+    var isInDebug = kDebugMode;
     return LogInterceptor(
-      request: true,
-      requestHeader: true,
-      requestBody: true,
-      responseBody: true,
-      responseHeader: false,
-      error: true,
+      request: isInDebug,
+      requestHeader: isInDebug,
+      requestBody: isInDebug,
+      responseBody: isInDebug,
+      responseHeader: isInDebug,
+      error: isInDebug,
     );
   }
 
@@ -66,11 +68,11 @@ class ApiServices extends GetxService {
     printMessage("⚠️ API Error: $message");
   }
 
-  Future<Map<String, String>> _getHeaders(bool isUserRequired) async {
+  Map<String, String> _getHeaders(bool isUserRequired) {
     final headers = <String, String>{"Accept": "application/json"};
     final token = SharedPrefManager().userToken;
     if (isUserRequired && token.isNotEmpty) {
-      headers[ApiConstants.authorization] = "Bearer $token";
+      headers[ApiKeys.authorization] = "Bearer $token";
     }
     return headers;
   }
