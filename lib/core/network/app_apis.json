@@ -1,0 +1,1211 @@
+{
+  "info": {
+    "_postman_id": "7ca6fdad-f25b-4e4a-8c59-ebe6156e0523",
+    "name": "mapapi Production",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52633963",
+    "_collection_link": "https://go.postman.co/collection/52633963-7ca6fdad-f25b-4e4a-8c59-ebe6156e0523?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "user Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\":\"9999999999\",\r\n    \"password\":\"Admin@123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/auth/login",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/auth/profile",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout Api",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8000/api/v1/auth/logout",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "bearer"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {},
+            "exec": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Project",
+      "item": [
+        {
+          "name": "Create projects",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\":\"Ayodhya Township\",\r\n    \"builder_name\":\"ABC Builders\",\r\n    \"description\":\"Premium plotted development\",\r\n    \"location\":\"Ayodhya\",\r\n    \"status\":true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/projects",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get projects Api",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/projects",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project details by uuid",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/projects/6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project ",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\":\"Ayodhya Smart City\",\r\n    \"builder_name\":\"Nivraj Developers\",\r\n    \"description\":\"Updated description\",\r\n    \"location\":\"Ayodhya, Uttar Pradesh\",\r\n    \"status\":true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/projects/6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete project",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/projects/6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Site",
+      "item": [
+        {
+          "name": "Create Sites",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Master Layout\",\r\n    \"code\": \"ML-001\",\r\n    \"description\": \"Main township layout\",\r\n    \"status\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/projects/6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc/sites",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc",
+                "sites"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "all sites Blongs by project uuid",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/projects/6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc/sites",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "projects",
+                "6f476857-8b59-4aaa-9fd1-3cbd5c7c9fdc",
+                "sites"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Site Details ",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/sites/5d7410f7-bbdc-4ea5-a064-69220d4d03d6",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "5d7410f7-bbdc-4ea5-a064-69220d4d03d6"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update site ",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"Master Layout Updated\",\r\n    \"code\":\"ML-002\",\r\n    \"description\":\"Updated township master layout\",\r\n    \"status\":true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/sites/5d7410f7-bbdc-4ea5-a064-69220d4d03d6",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "5d7410f7-bbdc-4ea5-a064-69220d4d03d6"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Site",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"Master Layout Updated\",\r\n    \"code\":\"ML-002\",\r\n    \"description\":\"Updated township master layout\",\r\n    \"status\":true\r\n}"
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/sites/5d7410f7-bbdc-4ea5-a064-69220d4d03d6",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "5d7410f7-bbdc-4ea5-a064-69220d4d03d6"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pdf",
+      "item": [
+        {
+          "name": "Upload pdf by uuid",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Text",
+                  "type": "text",
+                  "uuid": "0d889b4f-53a7-419d-b06c-432805c48859"
+                },
+                {
+                  "key": "category",
+                  "value": "Text",
+                  "type": "text",
+                  "uuid": "024cc7ce-d937-453d-8875-33a36f7e5d7d"
+                },
+                {
+                  "key": "description",
+                  "value": "Text",
+                  "type": "text",
+                  "uuid": "8292b9ab-6b54-4abb-8668-378bbbbb4a05"
+                },
+                {
+                  "key": "status",
+                  "value": "1",
+                  "type": "text",
+                  "uuid": "d58eaa8e-ead9-44c9-a7e5-9d7670e3718b"
+                },
+                {
+                  "key": "pdf_file",
+                  "type": "file",
+                  "uuid": "ebf6078b-1fbd-4c00-9856-d34631ec5996",
+                  "src": "/D:/lenovo/Downloads/Live Site Map Annotation System - Google Docs.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/sites/5d7410f7-bbdc-4ea5-a064-69220d4d03d6/pdfs",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "5d7410f7-bbdc-4ea5-a064-69220d4d03d6",
+                "pdfs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get Pdf by Url ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8000/storage/pdfs/1786914759_tVAJBFzZRy.pdf",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8000",
+              "path": [
+                "storage",
+                "pdfs",
+                "1786914759_tVAJBFzZRy.pdf"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get Pdf by site uuid",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/sites/5d7410f7-bbdc-4ea5-a064-69220d4d03d6/pdfs?page=1&per_page=10&search=text&status=1",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sites",
+                "5d7410f7-bbdc-4ea5-a064-69220d4d03d6",
+                "pdfs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get pdf by uuid",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/pdfs/d50c5ec5-40ef-4fb4-83ed-72a5a4ae6d71",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pdfs",
+                "d50c5ec5-40ef-4fb4-83ed-72a5a4ae6d71"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Pdf details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "text",
+                  "type": "text",
+                  "uuid": "121b5b0d-46e2-427e-9c43-3e7e91135165"
+                },
+                {
+                  "key": "category",
+                  "value": "text",
+                  "type": "text",
+                  "uuid": "b2c78296-ef63-4e09-9e79-9cee049cd0a5"
+                },
+                {
+                  "key": "description",
+                  "value": "text",
+                  "type": "text",
+                  "uuid": "d7df035b-dfe7-421d-b531-0bdf62f55e28"
+                },
+                {
+                  "key": "status",
+                  "value": "1",
+                  "type": "text",
+                  "uuid": "2cd5139d-dfbd-4f3d-ba4a-8f49c005ae3d"
+                },
+                {
+                  "key": "pdf_file",
+                  "type": "file",
+                  "uuid": "e17af61a-3c37-4635-9e0a-91efde8f183e",
+                  "src": "/D:/lenovo/Downloads/15 Aug.pdf"
+                },
+                {
+                  "key": "_method",
+                  "value": "PUT",
+                  "type": "text",
+                  "uuid": "e89378c5-66cb-4cbe-a283-6a05b01fd2ff"
+                }
+              ]
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/pdfs/d50c5ec5-40ef-4fb4-83ed-72a5a4ae6d71",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pdfs",
+                "d50c5ec5-40ef-4fb4-83ed-72a5a4ae6d71"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Pdf",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "text",
+                  "type": "text",
+                  "uuid": "121b5b0d-46e2-427e-9c43-3e7e91135165"
+                },
+                {
+                  "key": "category",
+                  "value": "text",
+                  "type": "text",
+                  "uuid": "b2c78296-ef63-4e09-9e79-9cee049cd0a5"
+                },
+                {
+                  "key": "description",
+                  "value": "text",
+                  "type": "text",
+                  "uuid": "d7df035b-dfe7-421d-b531-0bdf62f55e28"
+                },
+                {
+                  "key": "status",
+                  "value": "1",
+                  "type": "text",
+                  "uuid": "2cd5139d-dfbd-4f3d-ba4a-8f49c005ae3d"
+                },
+                {
+                  "key": "pdf_file",
+                  "type": "file",
+                  "uuid": "e17af61a-3c37-4635-9e0a-91efde8f183e",
+                  "src": "/D:/lenovo/Downloads/15 Aug.pdf"
+                },
+                {
+                  "key": "_method",
+                  "value": "PUT",
+                  "type": "text",
+                  "uuid": "e89378c5-66cb-4cbe-a283-6a05b01fd2ff"
+                }
+              ]
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/pdfs/d50c5ec5-40ef-4fb4-83ed-72a5a4ae6d71",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pdfs",
+                "d50c5ec5-40ef-4fb4-83ed-72a5a4ae6d71"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Annotations",
+      "item": [
+        {
+          "name": "Make Annotations",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "// {\r\n//     \"page_number\":1,\r\n//     \"type\":\"text\",\r\n//     \"payload\":{\r\n//         \"text\":\"R\",\r\n//         \"x\":220,\r\n//         \"y\":300,\r\n//         \"fontSize\":18,\r\n//         \"color\":\"#00AA00\"\r\n//     }\r\n// }\r\n\r\n// {\r\n//     \"page_number\":1,\r\n//     \"type\":\"cross\",\r\n//     \"payload\":{\r\n//         \"x\":450,\r\n//         \"y\":250,\r\n//         \"size\":20,\r\n//         \"color\":\"#FF0000\"\r\n//     }\r\n// }\r\n\r\n{\r\n    \"page_number\":1,\r\n    \"type\":\"pencil\",\r\n    \"payload\":{\r\n        \"points\":[\r\n            {\"x\":100,\"y\":150},\r\n            {\"x\":110,\"y\":160},\r\n            {\"x\":120,\"y\":170}\r\n        ],\r\n        \"color\":\"#2196F3\",\r\n        \"strokeWidth\":3\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/pdfs/ecef1d1a-42cb-4288-9750-ac6002fe5321/annotations",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pdfs",
+                "ecef1d1a-42cb-4288-9750-ac6002fe5321",
+                "annotations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Annotations ",
+          "protocolProfileBehavior": {
+            "disabledSystemHeaders": {}
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"page_number\": 1,\r\n    \"type\": \"text\",\r\n    \"payload\": {\r\n        \"text\": \"C\",\r\n        \"x\": 250,\r\n        \"y\": 350,\r\n        \"fontSize\": 18,\r\n        \"color\": \"#FF0000\"\r\n    }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/annotations/4587d5bf-88c5-4160-91e8-9fddf49320b6",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "annotations",
+                "4587d5bf-88c5-4160-91e8-9fddf49320b6"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete anotations",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://127.0.0.1:8000/api/v1/annotations/8ee2430e-84c6-4340-b2b7-6f9f4ed94f1f",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "v1",
+                "annotations",
+                "8ee2430e-84c6-4340-b2b7-6f9f4ed94f1f"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "undo by annotations uuid",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/annotations/4587d5bf-88c5-4160-91e8-9fddf49320b6/undo",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "annotations",
+                "4587d5bf-88c5-4160-91e8-9fddf49320b6",
+                "undo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Redo by annotations uuid",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/annotations/4587d5bf-88c5-4160-91e8-9fddf49320b6/redo",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "annotations",
+                "4587d5bf-88c5-4160-91e8-9fddf49320b6",
+                "redo"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "clear-anootation-on-page ",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"page_number\": 1\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/pdfs/d50c5ec5-40ef-4fb4-83ed-72a5a4ae6d71/clear-page",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pdfs",
+                "d50c5ec5-40ef-4fb4-83ed-72a5a4ae6d71",
+                "clear-page"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "clear all",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{Bearer Token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"page_number\": 1\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://pbd.nivrajsoftware.in/api/v1/pdfs/ecef1d1a-42cb-4288-9750-ac6002fe5321/clear-all",
+              "protocol": "https",
+              "host": [
+                "pbd",
+                "nivrajsoftware",
+                "in"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "pdfs",
+                "ecef1d1a-42cb-4288-9750-ac6002fe5321",
+                "clear-all"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

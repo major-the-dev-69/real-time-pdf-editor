@@ -4,10 +4,11 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide FormData, Response;
+import 'package:sai_associates/app/app_routes.dart';
 
 import '../../db/shared_pref_manager.dart';
-import '../../widgets/custom_snack_bar.dart';
 import '../helper/logger_helper.dart';
 import 'api_constants.dart';
 import 'retry_interceptor.dart';
@@ -39,13 +40,14 @@ class ApiServices extends GetxService {
   }
 
   LogInterceptor _buildLogger() {
+    var isInDebug = kDebugMode;
     return LogInterceptor(
-      request: true,
-      requestHeader: true,
-      requestBody: true,
-      responseBody: true,
-      responseHeader: false,
-      error: true,
+      request: isInDebug,
+      requestHeader: isInDebug,
+      requestBody: isInDebug,
+      responseBody: isInDebug,
+      responseHeader: isInDebug,
+      error: isInDebug,
     );
   }
 
@@ -66,75 +68,77 @@ class ApiServices extends GetxService {
     printMessage("⚠️ API Error: $message");
   }
 
-  /// ✅ Robustly extract & parse JSON from XML WebService responses
-  dynamic cleanXmlJsonResponse(dynamic responseData) {
-    if (responseData == null) return null;
-    String str = responseData.toString().trim();
-
-    // Find the first occurrence of '{' or '[' and last occurrence of '}' or ']'
-    final firstBrace = str.indexOf('{');
-    final firstBracket = str.indexOf('[');
-
-    int jsonStart = -1;
-    if (firstBrace != -1 && firstBracket != -1) {
-      jsonStart = firstBrace < firstBracket ? firstBrace : firstBracket;
-    } else if (firstBrace != -1) {
-      jsonStart = firstBrace;
-    } else if (firstBracket != -1) {
-      jsonStart = firstBracket;
+  Map<String, String> _getHeaders(bool isUserRequired) {
+    final headers = <String, String>{"Accept": "application/json"};
+    final token = SharedPrefManager().userToken;
+    if (isUserRequired && token.isNotEmpty) {
+      headers[ApiKeys.authorization] = "Bearer $token";
     }
-
-    final lastBrace = str.lastIndexOf('}');
-    final lastBracket = str.lastIndexOf(']');
-
-    int jsonEnd = -1;
-    if (lastBrace != -1 && lastBracket != -1) {
-      jsonEnd = lastBrace > lastBracket ? lastBrace : lastBracket;
-    } else if (lastBrace != -1) {
-      jsonEnd = lastBrace;
-    } else if (lastBracket != -1) {
-      jsonEnd = lastBracket;
-    }
-
-    if (jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart) {
-      str = str.substring(jsonStart, jsonEnd + 1).trim();
-    }
-
-    // Unescape XML entities if present
-    str = str
-        .replaceAll('&quot;', '"')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&amp;', '&');
-
-    // Decode JSON if string starts with '{' or '['
-    if (str.startsWith('{') || str.startsWith('[')) {
-      try {
-        return jsonDecode(str);
-      } catch (e) {
-        printMessage('⚠️ jsonDecode Exception: $e');
-      }
-    }
-
-    return responseData;
+    return headers;
   }
 
-  /// 📡 Generic POST API Call for all APIs (ASMX form-urlencoded compatible)
-  Future<ResponseModel> callPostApi(
+  ResponseModel _handleException(
+    dynamic e,
+    String method,
+    String urlOrEndpoint,
+    StackTrace stk,
+  ) {
+    logApiError("Exception in $method $urlOrEndpoint → $e \n$stk");
+    String message =
+        "Unable to connect to server. Please check your network connection.";
+    if (e is DioException) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException) {
+        message =
+            "Failed host lookup or no internet connection. Please check your network settings.";
+      } else if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        message = "Connection timed out. Please try again.";
+      } else if (e.response?.data != null && e.response?.data is Map) {
+        message = e.response?.data['message']?.toString() ?? message;
+      }
+    }
+    return ResponseModel(false, message, null);
+  }
+
+  /// 📡 Generic GET API Call
+  Future<ResponseModel> callGetApi(
     String urlOrEndpoint, {
-    Map<String, dynamic> req = const {},
-    FormData? multipartRequest,
-    bool isUserRequired = false,
-    bool isBodyData = false,
+    Map<String, dynamic>? queryParameters,
+    bool isUserRequired = true,
   }) async {
     try {
-      final headers = <String, String>{
-        "Accept": "application/json, text/xml, */*",
-      };
-      final token = SharedPrefManager().userToken;
-      if (isUserRequired && token.isNotEmpty) {
-        headers[ApiConstants.authorization] = "Bearer $token";
-      }
+      final headers = await _getHeaders(isUserRequired);
+
+      final options = Options(
+        headers: headers,
+        responseType: ResponseType.json,
+      );
+
+      printMessage("📡 GET [$urlOrEndpoint] Query: $queryParameters");
+
+      final response = await _dio.get(
+        urlOrEndpoint,
+        queryParameters: queryParameters,
+        options: options,
+      );
+
+      return checkResponseModel(response);
+    } catch (e, stk) {
+      return _handleException(e, "GET", urlOrEndpoint, stk);
+    }
+  }
+
+  /// 📡 Generic POST API Call
+  Future<ResponseModel> callPostApi(
+    String urlOrEndpoint, {
+    dynamic req,
+    FormData? multipartRequest,
+    bool isUserRequired = true,
+  }) async {
+    try {
+      final headers = await _getHeaders(isUserRequired);
 
       dynamic requestData;
       String contentType;
@@ -142,18 +146,15 @@ class ApiServices extends GetxService {
       if (multipartRequest != null) {
         requestData = multipartRequest;
         contentType = "multipart/form-data";
-      } else if (isBodyData) {
-        requestData = req;
-        contentType = "application/json";
       } else {
-        requestData = req;
-        contentType = Headers.formUrlEncodedContentType;
+        requestData = req ?? <String, dynamic>{};
+        contentType = "application/json";
       }
 
       final options = Options(
         headers: headers,
         contentType: contentType,
-        responseType: ResponseType.plain,
+        responseType: ResponseType.json,
       );
 
       printMessage(
@@ -168,77 +169,110 @@ class ApiServices extends GetxService {
 
       return checkResponseModel(response);
     } catch (e, stk) {
-      logApiError("Exception in POST $urlOrEndpoint → $e \n$stk");
-      return ResponseModel(
-        false,
-        "Unable to connect to server. Please check your network connection.",
-        null,
-      );
+      return _handleException(e, "POST", urlOrEndpoint, stk);
     }
   }
 
-  Future<ResponseModel> checkResponseModel(Response response) async {
+  /// 📡 Generic PUT API Call
+  Future<ResponseModel> callPutApi(
+    String urlOrEndpoint, {
+    dynamic req,
+    bool isUserRequired = true,
+  }) async {
+    try {
+      final headers = await _getHeaders(isUserRequired);
+
+      final options = Options(
+        headers: headers,
+        contentType: "application/json",
+        responseType: ResponseType.json,
+      );
+
+      printMessage("📡 PUT [$urlOrEndpoint] Request $req");
+
+      final response = await _dio.put(
+        urlOrEndpoint,
+        data: req ?? <String, dynamic>{},
+        options: options,
+      );
+
+      return checkResponseModel(response);
+    } catch (e, stk) {
+      return _handleException(e, "PUT", urlOrEndpoint, stk);
+    }
+  }
+
+  /// 📡 Generic DELETE API Call
+  Future<ResponseModel> callDeleteApi(
+    String urlOrEndpoint, {
+    dynamic req,
+    bool isUserRequired = true,
+  }) async {
+    try {
+      final headers = await _getHeaders(isUserRequired);
+
+      final options = Options(
+        headers: headers,
+        contentType: "application/json",
+        responseType: ResponseType.json,
+      );
+
+      printMessage("📡 DELETE [$urlOrEndpoint] Request $req");
+
+      final response = await _dio.delete(
+        urlOrEndpoint,
+        data: req,
+        options: options,
+      );
+
+      return checkResponseModel(response);
+    } catch (e, stk) {
+      return _handleException(e, "DELETE", urlOrEndpoint, stk);
+    }
+  }
+
+  ResponseModel checkResponseModel(Response response) {
     printMessage("Status Code: ${response.statusCode}");
     printMessage("Status Message: ${response.statusMessage}");
-    printMessage("Raw Response Data: ${response.data}");
+    printMessage("Raw Response Data: ${jsonEncode(response.data)}");
 
-    final cleanedData = cleanXmlJsonResponse(response.data);
-    printMessage("Cleaned Response Data: ${jsonEncode(cleanedData)}");
+    dynamic responseData = response.data;
+    if (responseData is String) {
+      try {
+        responseData = jsonDecode(responseData);
+      } catch (e) {
+        printMessage('⚠️ jsonDecode Exception: $e');
+      }
+    }
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      if (cleanedData is Map<String, dynamic>) {
-        // Check top-level Status
-        final topStatus =
-            cleanedData['Status'] ??
-            cleanedData['status'] ??
-            cleanedData[ApiKeys.success];
-        final isTopStatusTrue =
-            topStatus == true ||
-            topStatus.toString().toLowerCase() == 'true' ||
-            topStatus.toString() == '200' ||
-            topStatus.toString() == '202';
+      if (responseData is Map<String, dynamic>) {
+        final status = responseData.containsKey('status')
+            ? (responseData['status'] == true ||
+                  responseData['status'] == 'true' ||
+                  responseData['status'] == 1)
+            : true;
+        final message =
+            responseData['message']?.toString() ??
+            (status ? 'Success' : 'Error');
+        final data = responseData['data'];
 
-        // Check ASMX "Response" format
-        if (cleanedData.containsKey('Response') &&
-            cleanedData['Response'] is List) {
-          final list = cleanedData['Response'] as List;
-          if (list.isNotEmpty && list[0] is Map) {
-            final item = Map<String, dynamic>.from(list[0] as Map);
-            final itemStatus = item['status'] ?? item['Status'];
-            final isItemStatusTrue =
-                itemStatus == true ||
-                itemStatus.toString().toLowerCase() == 'true' ||
-                itemStatus.toString() == '200' ||
-                itemStatus.toString() == '202';
-
-            final hasUidOrLogin =
-                item.containsKey('uid') || item.containsKey('username');
-
-            if (isItemStatusTrue || isTopStatusTrue || hasUidOrLogin) {
-              final message =
-                  cleanedData['Message'] ?? item['Msg'] ?? 'Success';
-              return ResponseModel(true, message.toString(), cleanedData);
-            }
-          } else if (list.isEmpty) {
-            return ResponseModel(false, "No records found", null);
-          }
-        }
-
-        // Standard API format check
-        if (isTopStatusTrue) {
-          final message =
-              cleanedData[ApiKeys.message] ??
-              cleanedData['Message'] ??
-              'Success';
-          final data = cleanedData[ApiKeys.response] ?? cleanedData;
-          return ResponseModel(true, message.toString(), data);
-        }
+        return ResponseModel(status, message, data);
+      } else {
+        return ResponseModel(true, "Success", responseData);
       }
     }
 
     if (response.statusCode == 401) {
-      const message = "Unauthorized access";
-      CustomSnackBar.showError(message: message);
+      final message = responseData['message'] ?? "Unauthorized access";
+      if (Get.currentRoute != AppRoutes.login) {
+        SharedPrefManager().userLogOut();
+      }
+      return ResponseModel(false, message, null);
+    }
+
+    if (responseData is Map<String, dynamic>) {
+      final message = responseData['message']?.toString() ?? "Error occurred";
       return ResponseModel(false, message, null);
     }
 

@@ -13,6 +13,8 @@ class AppAssets {
   static const String imgBgApp = '$_imgPrefix/bg_app.jpg';
   static const String imgAppTitle = '$_imgPrefix/app_title.png';
   static const String bgWaves = '$_imgPrefix/bg_waves.svg';
+  static const String imgRealEstateVector = '$_imgPrefix/real_estate_vector.png';
+  static const String imgCityWatermark = '$_imgPrefix/city_watermark.png';
 
   /// Icons
   static const String _iconPrefix = 'assets/icons';
@@ -44,6 +46,8 @@ class AppAssets {
   static const IconData icSearchNormal = Iconsax.search_normal_1_copy;
   static const IconData icCloseCircle = Iconsax.close_circle_copy;
   static const IconData icUser = Iconsax.user_copy;
+  static const IconData icUserAdd = Iconsax.user_add_copy;
+  static const IconData icAddCircle = Iconsax.add_circle_copy;
   static const IconData icDiscover = Iconsax.discover_copy;
 
   /// Iconsax Icons - Dashboard & Real Estate
@@ -57,6 +61,26 @@ class AppAssets {
   static const IconData icStar = Iconsax.star_copy;
   static const IconData icCalendar = Iconsax.calendar_1_copy;
   static const IconData icDownload = Iconsax.import_copy;
+  static const IconData icManageProperties = Iconsax.building_3_copy;
+  static const IconData icTrackPerformance = Iconsax.status_up_copy;
+  static const IconData icGrowNetwork = Iconsax.people_copy;
+
+  /// Iconsax Icons - Sites & PDF Details
+  static const IconData icPdf = Iconsax.document_text_copy;
+  static const IconData icPdfFile = Iconsax.document_1_copy;
+  static const IconData icLocationPin = Iconsax.location_copy;
+  static const IconData icSiteMap = Iconsax.map_1_copy;
+  static const IconData icFilterSearch = Iconsax.filter_search_copy;
+  static const IconData icProjectBuilding = Iconsax.building_4_copy;
+  static const IconData icDocumentDetail = Iconsax.document_text_1_copy;
+  static const IconData icSharePdf = Iconsax.share_copy;
+  static const IconData icDownloadPdf = Iconsax.import_1_copy;
+  static const IconData icEyeView = Iconsax.eye_copy;
+  static const IconData icPinHeader = Iconsax.attach_circle_copy;
+  static const IconData icSearch = Iconsax.search_normal_1_copy;
+  static const IconData icFilterTag = Iconsax.setting_4_copy;
+  static const IconData icTickCircle = Iconsax.tick_circle_copy;
+  static const IconData icEditPen = Iconsax.edit_2_copy;
 
   /// Animations
   static const String _animPrefix = 'assets/anim';

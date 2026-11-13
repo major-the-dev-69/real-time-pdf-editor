@@ -1,4 +1,7 @@
 import 'package:encrypt_shared_preferences/provider.dart';
+import 'package:get/get.dart';
+import 'package:sai_associates/app/app_routes.dart';
+import '../core/enums/user_role.dart';
 
 const blockSplashNavigation = "blockSplashNavigation";
 
@@ -28,6 +31,7 @@ class SharedPrefManager {
     await _prefs.remove(_keyRole);
     await _prefs.remove(blockSplashNavigation);
     await _prefs.remove(_keySettings);
+    Get.offAllNamed(AppRoutes.login);
   }
 
   Future<void> saveToken(String token) async {
@@ -65,6 +69,9 @@ class SharedPrefManager {
   String get userToken => _prefs.getString(_keyToken) ?? "";
   String get userRole => _prefs.getString(_keyRole) ?? "";
 
-  bool get isCustomer => userRole == "3" || userToken.trim().toUpperCase().startsWith('AMC');
+  UserRole get userRoleEnum {
+    return UserRoleExtension.fromString(userRole);
+  }
+
   bool get isLoggedIn => userToken.trim().isNotEmpty;
 }

@@ -1,0 +1,1353 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
+import 'package:sai_associates/core/network/api_constants.dart';
+
+import '../../../../core/helper/logger_helper.dart';
+import '../../../../core/network/api_services.dart';
+import '../../../../core/network/pusher_service.dart';
+
+import '../../model/annotation_model.dart';
+import '../../model/pdf_document_model.dart';
+import '../widgets/annotation_painter.dart';
+
+enum AnnotationMode { view, draw, text, cross, erase }
+
+class PdfEditController extends GetxController {
+  final apiServices = Get.find<ApiServices>();
+
+  final pdfDocument = Rxn<PdfDocumentModel>();
+  final isFetchingDetails = false.obs;
+  final isFetchingAnnotations = false.obs;
+
+  final transformationController = TransformationController();
+
+  // High-DPI Image Rendering & Aspect Ratio
+  final pageAspectRatio = 1.0.obs;
+  final isLoaded = false.obs;
+
+  // Page tracking
+  final currentPage = 1.obs;
+  final totalPages = 1.obs;
+
+  // Zoom & Scale Tracking
+  final zoomScale = 1.0.obs;
+
+  void _resolveImageDimensions(String url) {
+    if (url.isEmpty) return;
+    try {
+      final imageProvider =
+          (url.startsWith('http://') || url.startsWith('https://'))
+          ? NetworkImage(url)
+          : FileImage(File(url)) as ImageProvider;
+
+      final ImageStream stream = imageProvider.resolve(
+        const ImageConfiguration(),
+      );
+      late final ImageStreamListener listener;
+      listener = ImageStreamListener(
+        (ImageInfo info, bool synchronousCall) {
+          final width = info.image.width.toDouble();
+          final height = info.image.height.toDouble();
+          if (width > 0 && height > 0) {
+            pageAspectRatio.value = width / height;
+          }
+          isLoaded.value = true;
+          isPdfLoadError.value = false;
+        },
+        onError: (exception, stackTrace) {
+          printMessage("⚠️ Error resolving image dimensions: $exception");
+          isPdfLoadError.value = true;
+          isLoaded.value = true;
+        },
+      );
+      stream.addListener(listener);
+    } catch (e) {
+      printMessage("⚠️ Error setting up image stream: $e");
+    }
+  }
+
+  void zoomIn({Size viewportSize = const Size(400, 600)}) {
+    final currentScale = transformationController.value.getMaxScaleOnAxis();
+    if (currentScale < 20.0) {
+      final targetScale = (currentScale + 0.5).clamp(1.0, 20.0);
+      _applyZoom(targetScale, viewportSize);
+    }
+  }
+
+  void zoomOut({Size viewportSize = const Size(400, 600)}) {
+    final currentScale = transformationController.value.getMaxScaleOnAxis();
+    if (currentScale > 1.0) {
+      final targetScale = (currentScale - 0.5).clamp(1.0, 20.0);
+      _applyZoom(targetScale, viewportSize);
+    }
+  }
+
+  void zoomInAt(
+    Offset tapPosition,
+    Size viewportSize, {
+    double targetScale = 2.5,
+  }) {
+    final double dx = -tapPosition.dx * (targetScale - 1);
+    final double dy = -tapPosition.dy * (targetScale - 1);
+    final matrix = Matrix4.identity()
+      ..setEntry(0, 0, targetScale)
+      ..setEntry(1, 1, targetScale)
+      ..setEntry(0, 3, dx)
+      ..setEntry(1, 3, dy);
+    transformationController.value = matrix;
+    setZoomScale(targetScale);
+  }
+
+  void resetZoom() {
+    transformationController.value = Matrix4.identity();
+    zoomScale.value = 1.0;
+  }
+
+  void _applyZoom(double targetScale, Size viewportSize) {
+    if (targetScale <= 1.0) {
+      resetZoom();
+      return;
+    }
+    final double cx = viewportSize.width / 2;
+    final double cy = viewportSize.height / 2;
+    final double dx = cx - cx * targetScale;
+    final double dy = cy - cy * targetScale;
+    final matrix = Matrix4.identity()
+      ..setEntry(0, 0, targetScale)
+      ..setEntry(1, 1, targetScale)
+      ..setEntry(0, 3, dx)
+      ..setEntry(1, 3, dy);
+    transformationController.value = matrix;
+    setZoomScale(targetScale);
+  }
+
+  void setZoomScale(double val) {
+    if (val > 0) {
+      final newScale = double.parse(val.toStringAsFixed(2));
+      if ((zoomScale.value - newScale).abs() > 0.01) {
+        zoomScale.value = newScale;
+      }
+    }
+  }
+
+  Offset toPercentagePoint(Offset pixelPoint, Size renderSize) {
+    if (renderSize.width <= 0 || renderSize.height <= 0) return pixelPoint;
+    final pctX = double.parse(
+      ((pixelPoint.dx / renderSize.width) * 100.0).toStringAsFixed(2),
+    );
+    final pctY = double.parse(
+      ((pixelPoint.dy / renderSize.height) * 100.0).toStringAsFixed(2),
+    );
+    return Offset(pctX, pctY);
+  }
+
+  Offset toPixelPoint(Offset pctPoint, Size renderSize) {
+    if (renderSize.width <= 0 || renderSize.height <= 0) return pctPoint;
+    if (pctPoint.dx > 100.0 || pctPoint.dy > 100.0) return pctPoint;
+    final px = (pctPoint.dx / 100.0) * renderSize.width;
+    final py = (pctPoint.dy / 100.0) * renderSize.height;
+    return Offset(px, py);
+  }
+
+  // Active Annotation Mode
+  final activeMode = AnnotationMode.view.obs;
+
+  // Drawing Customization
+  final selectedColor = Rx<Color>(Colors.red);
+  final selectedStrokeWidth = 1.0.obs;
+  final selectedFontSize = 14.0.obs;
+  final selectedFontWeight = Rx<FontWeight>(FontWeight.normal);
+  final selectedCrossSize = 3.0.obs;
+
+  // Text Drag & Selection Tracking
+  final isDraggingText = false.obs;
+  final draggedTextId = ''.obs;
+  final selectedTextAnnotationId = ''.obs;
+  Offset _dragOffsetDelta = Offset.zero;
+
+  // Color Palette choices
+  final availableColors = [
+    Colors.red,
+    Colors.pink,
+    Colors.purple,
+    Colors.deepPurple,
+    Colors.indigo,
+    Colors.blue,
+    Colors.lightBlue,
+    Colors.cyan,
+    Colors.teal,
+    Colors.green,
+    Colors.lightGreen,
+    Colors.lime,
+    Colors.amber,
+    Colors.orange,
+    Colors.deepOrange,
+    Colors.brown,
+    Colors.grey,
+    Colors.blueGrey,
+    Colors.black,
+    Colors.white,
+  ];
+
+  // Annotation Collections
+  final lines = <DrawnLine>[].obs;
+  final currentLine = Rxn<DrawnLine>();
+  final textAnnotations = <TextAnnotation>[].obs;
+  final crossAnnotations = <CrossAnnotation>[].obs;
+
+  // Redo tracking stack
+  final redoStack = <Map<String, dynamic>>[].obs;
+
+  String currentPusherChannel = '';
+
+  final pdfUrl = ''.obs;
+  final isPdfLoadError = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+
+    ever(pdfDocument, (_) {
+      updatePdfUrlFromModel();
+    });
+
+    final args = Get.arguments;
+    if (args is PdfDocumentModel) {
+      pdfDocument.value = args;
+      fetchPdfDetails(args.id);
+    }
+    updatePdfUrlFromModel();
+  }
+
+  void updatePdfUrlFromModel() {
+    final id = pdfDocument.value?.uuid.trim() ?? '';
+    if (id.isNotEmpty) {
+      pdfUrl.value = "${ApiConstants.docs}/$id";
+      printMessage("updatePdfUrlFromModel : $pdfUrl");
+      _resolveImageDimensions(id);
+    }
+  }
+
+  Future<void> fetchPdfDetails(String pdfUuid) async {
+    if (pdfUuid.isEmpty) return;
+    isFetchingDetails.value = true;
+
+    try {
+      final endpoint = 'pdfs/$pdfUuid';
+      final response = await apiServices.callGetApi(
+        endpoint,
+        isUserRequired: true,
+      );
+
+      if (response.status && response.data != null) {
+        final doc = PdfDocumentModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+        pdfDocument.value = doc;
+        await fetchAnnotations(pdfUuid);
+      }
+    } catch (e) {
+      printMessage("⚠️ Error fetching PDF details in PdfEditController: $e");
+    } finally {
+      isFetchingDetails.value = false;
+    }
+  }
+
+  Future<void> fetchAnnotations(String pdfUuid) async {
+    if (pdfUuid.isEmpty) return;
+    isFetchingAnnotations.value = true;
+
+    try {
+      final endpoint = 'pdfs/$pdfUuid/annotations';
+      final response = await apiServices.callGetApi(
+        endpoint,
+        isUserRequired: true,
+      );
+
+      if (response.status && response.data != null) {
+        dynamic annotationsData = response.data;
+        if (annotationsData is Map &&
+            annotationsData.containsKey('annotations')) {
+          annotationsData = annotationsData['annotations'];
+        }
+        if (annotationsData is List) {
+          final loadedLines = <DrawnLine>[];
+          final loadedTexts = <TextAnnotation>[];
+          final loadedCrosses = <CrossAnnotation>[];
+
+          for (final item in annotationsData) {
+            if (item is Map<String, dynamic>) {
+              final annotation = AnnotationModel.fromJson(item);
+              final pageNo = annotation.pageNumber;
+              final payload = annotation.payload;
+
+              if (annotation.type == 'pencil' || annotation.type == 'draw') {
+                final pointsRaw = payload['points'];
+                List<Offset> points = [];
+                if (pointsRaw is List) {
+                  points = pointsRaw.map((pt) {
+                    final x = (pt['x'] as num?)?.toDouble() ?? 0.0;
+                    final y = (pt['y'] as num?)?.toDouble() ?? 0.0;
+                    return Offset(x, y);
+                  }).toList();
+                }
+
+                final strokeW =
+                    (payload['strokeWidth'] as num?)?.toDouble() ?? 3.0;
+                final col = AnnotationModel.hexToColor(
+                  payload['color']?.toString(),
+                );
+
+                loadedLines.add(
+                  DrawnLine(
+                    id: annotation.id,
+                    points: points,
+                    color: col,
+                    strokeWidth: strokeW,
+                    pageNumber: pageNo,
+                  ),
+                );
+              } else if (annotation.type == 'text') {
+                final textStr = payload['text']?.toString() ?? '';
+                final x = (payload['x'] as num?)?.toDouble() ?? 0.0;
+                final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
+                final fontS = (payload['fontSize'] as num?)?.toDouble() ?? 18.0;
+                final col = AnnotationModel.hexToColor(
+                  payload['color']?.toString(),
+                );
+                final fontW = AnnotationModel.stringToFontWeight(
+                  payload['fontWeight'] ??
+                      payload['font_weight'] ??
+                      payload['weight'],
+                );
+
+                loadedTexts.add(
+                  TextAnnotation(
+                    id: annotation.id,
+                    position: Offset(x, y),
+                    text: textStr,
+                    color: col,
+                    fontSize: fontS,
+                    fontWeight: fontW,
+                    pageNumber: pageNo,
+                  ),
+                );
+              } else if (annotation.type == 'cross') {
+                final x = (payload['x'] as num?)?.toDouble() ?? 0.0;
+                final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
+                final sizeVal = (payload['size'] as num?)?.toDouble() ?? 20.0;
+                final col = AnnotationModel.hexToColor(
+                  payload['color']?.toString(),
+                );
+
+                loadedCrosses.add(
+                  CrossAnnotation(
+                    id: annotation.id,
+                    position: Offset(x, y),
+                    size: sizeVal,
+                    color: col,
+                    pageNumber: pageNo,
+                  ),
+                );
+              }
+            }
+          }
+
+          lines.assignAll(loadedLines);
+          textAnnotations.assignAll(loadedTexts);
+          crossAnnotations.assignAll(loadedCrosses);
+
+          await setupRealtimePusher(pdfUuid);
+        }
+      }
+    } catch (e) {
+      printMessage("⚠️ Error fetching annotations: $e");
+    } finally {
+      isFetchingAnnotations.value = false;
+    }
+  }
+
+  // --- PUSHER REAL-TIME WEBSOCKET SUBSCRIPTION ---
+
+  Future<void> setupRealtimePusher(String pdfUuid) async {
+    if (pdfUuid.isEmpty) return;
+
+    final pusher = Get.isRegistered<PusherService>()
+        ? Get.find<PusherService>()
+        : null;
+    if (pusher == null) return;
+
+    if (currentPusherChannel.isNotEmpty) {
+      await pusher.unsubscribeFromChannel(
+        currentPusherChannel,
+        _handlePusherEvent,
+      );
+      await pusher.unsubscribeFromChannel(
+        'private-$currentPusherChannel',
+        _handlePusherEvent,
+      );
+    }
+
+    currentPusherChannel = 'pdf.$pdfUuid';
+    printMessage(
+      "📡 Setting up Pusher subscription for channels: pdf.$pdfUuid & private-pdf.$pdfUuid",
+    );
+    await pusher.subscribeToChannel('pdf.$pdfUuid', _handlePusherEvent);
+    await pusher.subscribeToChannel('private-pdf.$pdfUuid', _handlePusherEvent);
+  }
+
+  void _handlePusherEvent(PusherEvent event) {
+    try {
+      printMessage(
+        "📡 Handling Pusher Event in PdfEditController: [${event.channelName}] ${event.eventName}",
+      );
+
+      if (event.eventName.startsWith('pusher:')) return;
+
+      dynamic data = event.data;
+      if (data is String) {
+        try {
+          data = jsonDecode(data);
+        } catch (_) {}
+      }
+
+      final eventName = event.eventName.toLowerCase();
+
+      final isCreate =
+          eventName.contains('created') ||
+          eventName.contains('added') ||
+          eventName.contains('create') ||
+          eventName.contains('add') ||
+          eventName.contains('saved') ||
+          eventName.contains('store');
+
+      final isUpdate =
+          eventName.contains('updated') ||
+          eventName.contains('update') ||
+          eventName.contains('edit') ||
+          eventName.contains('modify');
+
+      final isDelete =
+          eventName.contains('deleted') ||
+          eventName.contains('delete') ||
+          eventName.contains('removed') ||
+          eventName.contains('remove') ||
+          eventName.contains('destroy') ||
+          eventName.contains('undo');
+
+      final isClear =
+          eventName.contains('clear') ||
+          eventName.contains('wipe') ||
+          eventName.contains('reset');
+
+      if (isCreate || isUpdate) {
+        final annData = _extractAnnotationData(data);
+        if (annData != null) {
+          _addOrUpdateSingleAnnotation(AnnotationModel.fromJson(annData));
+        }
+      } else if (isDelete) {
+        final targetId = (data is Map)
+            ? (data['uuid']?.toString() ??
+                  data['id']?.toString() ??
+                  data['annotation_id']?.toString() ??
+                  data['annotation_uuid']?.toString() ??
+                  '')
+            : '';
+        if (targetId.isNotEmpty) {
+          lines.removeWhere((l) => l.id == targetId);
+          textAnnotations.removeWhere((t) => t.id == targetId);
+          crossAnnotations.removeWhere((c) => c.id == targetId);
+          lines.refresh();
+          textAnnotations.refresh();
+          crossAnnotations.refresh();
+        }
+      } else if (isClear) {
+        final pageNo = (data is Map)
+            ? ((data['page_number'] as num?)?.toInt() ?? 1)
+            : 1;
+        lines.removeWhere((l) => l.pageNumber == pageNo);
+        textAnnotations.removeWhere((t) => t.pageNumber == pageNo);
+        crossAnnotations.removeWhere((c) => c.pageNumber == pageNo);
+        lines.refresh();
+        textAnnotations.refresh();
+        crossAnnotations.refresh();
+      } else {
+        final annData = _extractAnnotationData(data);
+        if (annData != null &&
+            (annData.containsKey('type') ||
+                annData.containsKey('uuid') ||
+                annData.containsKey('id') ||
+                annData.containsKey('payload'))) {
+          _addOrUpdateSingleAnnotation(AnnotationModel.fromJson(annData));
+        }
+      }
+    } catch (e) {
+      printMessage("⚠️ Error handling Pusher event in PdfEditController: $e");
+    }
+  }
+
+  Map<String, dynamic>? _extractAnnotationData(dynamic data) {
+    if (data is! Map) return null;
+    final map = Map<String, dynamic>.from(data);
+
+    if (map.containsKey('annotation') && map['annotation'] is Map) {
+      return Map<String, dynamic>.from(map['annotation']);
+    }
+    if (map.containsKey('data') && map['data'] is Map) {
+      final inner = Map<String, dynamic>.from(map['data']);
+      if (inner.containsKey('annotation') && inner['annotation'] is Map) {
+        return Map<String, dynamic>.from(inner['annotation']);
+      }
+      return inner;
+    }
+    if (map.containsKey('payload') &&
+        map['payload'] is Map &&
+        (map['payload'] as Map).containsKey('type')) {
+      return Map<String, dynamic>.from(map['payload']);
+    }
+    return map;
+  }
+
+  void _addOrUpdateSingleAnnotation(AnnotationModel annotation) {
+    final pageNo = annotation.pageNumber;
+    final payload = annotation.payload;
+
+    if (annotation.type == 'pencil' || annotation.type == 'draw') {
+      final pointsRaw =
+          payload['points'] ?? payload['path'] ?? payload['points_list'];
+      List<Offset> points = [];
+      if (pointsRaw is List) {
+        points = pointsRaw.map((pt) {
+          if (pt is Map) {
+            final x = (pt['x'] as num?)?.toDouble() ?? 0.0;
+            final y = (pt['y'] as num?)?.toDouble() ?? 0.0;
+            return Offset(x, y);
+          } else if (pt is List && pt.length >= 2) {
+            final x = (pt[0] as num?)?.toDouble() ?? 0.0;
+            final y = (pt[1] as num?)?.toDouble() ?? 0.0;
+            return Offset(x, y);
+          }
+          return Offset.zero;
+        }).toList();
+      }
+      final strokeW =
+          (payload['strokeWidth'] ??
+                  payload['stroke_width'] ??
+                  payload['width'] as num?)
+              ?.toDouble() ??
+          3.0;
+      final col = AnnotationModel.hexToColor(
+        (payload['color'] ?? payload['hex'] ?? payload['stroke_color'])
+            ?.toString(),
+      );
+
+      final newLine = DrawnLine(
+        id: annotation.id,
+        points: points,
+        color: col,
+        strokeWidth: strokeW,
+        pageNumber: pageNo,
+      );
+
+      final idx = lines.indexWhere(
+        (l) => l.id.isNotEmpty && l.id == annotation.id,
+      );
+      if (idx != -1) {
+        lines[idx] = newLine;
+      } else {
+        lines.add(newLine);
+      }
+      lines.refresh();
+    } else if (annotation.type == 'text') {
+      final textStr =
+          (payload['text'] ?? payload['content'] ?? payload['value'])
+              ?.toString() ??
+          '';
+      final x = (payload['x'] as num?)?.toDouble() ?? 0.0;
+      final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
+      final fontS =
+          (payload['fontSize'] ??
+                  payload['font_size'] ??
+                  payload['size'] as num?)
+              ?.toDouble() ??
+          18.0;
+      final col = AnnotationModel.hexToColor(
+        (payload['color'] ?? payload['hex'] ?? payload['font_color'])
+            ?.toString(),
+      );
+      final fontW = AnnotationModel.stringToFontWeight(
+        payload['fontWeight'] ?? payload['font_weight'] ?? payload['weight'],
+      );
+
+      final newText = TextAnnotation(
+        id: annotation.id,
+        position: Offset(x, y),
+        text: textStr,
+        color: col,
+        fontSize: fontS,
+        fontWeight: fontW,
+        pageNumber: pageNo,
+      );
+
+      final idx = textAnnotations.indexWhere(
+        (t) => t.id.isNotEmpty && t.id == annotation.id,
+      );
+      if (idx != -1) {
+        textAnnotations[idx] = newText;
+      } else {
+        textAnnotations.add(newText);
+      }
+      textAnnotations.refresh();
+    } else if (annotation.type == 'cross') {
+      final x = (payload['x'] as num?)?.toDouble() ?? 0.0;
+      final y = (payload['y'] as num?)?.toDouble() ?? 0.0;
+      final sz =
+          (payload['size'] ??
+                  payload['crossSize'] ??
+                  payload['cross_size'] as num?)
+              ?.toDouble() ??
+          24.0;
+      final col = AnnotationModel.hexToColor(
+        (payload['color'] ?? payload['hex'])?.toString(),
+      );
+
+      final newCross = CrossAnnotation(
+        id: annotation.id,
+        position: Offset(x, y),
+        size: sz,
+        color: col,
+        pageNumber: pageNo,
+      );
+
+      final idx = crossAnnotations.indexWhere(
+        (c) => c.id.isNotEmpty && c.id == annotation.id,
+      );
+      if (idx != -1) {
+        crossAnnotations[idx] = newCross;
+      } else {
+        crossAnnotations.add(newCross);
+      }
+      crossAnnotations.refresh();
+    }
+  }
+
+  // --- API HELPER METHODS ---
+
+  Future<String?> createAnnotationApi(AnnotationModel item) async {
+    final pdfUuid = pdfDocument.value?.id ?? '';
+    if (pdfUuid.isEmpty) return null;
+
+    try {
+      final endpoint = 'pdfs/$pdfUuid/annotations';
+      final response = await apiServices.callPostApi(
+        endpoint,
+        req: item.toJson(),
+        isUserRequired: true,
+      );
+
+      if (response.status && response.data != null) {
+        if (response.data is Map) {
+          final resMap = response.data as Map;
+          return resMap['uuid']?.toString() ?? resMap['id']?.toString();
+        }
+      }
+    } catch (e) {
+      printMessage("⚠️ Error creating annotation API: $e");
+    }
+    return null;
+  }
+
+  Future<bool> updateAnnotationApi(
+    String annotationUuid,
+    AnnotationModel item,
+  ) async {
+    if (annotationUuid.isEmpty) return false;
+
+    try {
+      final endpoint = 'annotations/$annotationUuid';
+      final response = await apiServices.callPutApi(
+        endpoint,
+        req: item.toJson(),
+        isUserRequired: true,
+      );
+      return response.status;
+    } catch (e) {
+      printMessage("⚠️ Error updating annotation API: $e");
+      return false;
+    }
+  }
+
+  Future<bool> deleteAnnotationApi(String annotationUuid) async {
+    if (annotationUuid.isEmpty) return false;
+
+    try {
+      final endpoint = 'annotations/$annotationUuid';
+      final response = await apiServices.callDeleteApi(
+        endpoint,
+        isUserRequired: true,
+      );
+      return response.status;
+    } catch (e) {
+      printMessage("⚠️ Error deleting annotation API: $e");
+      return false;
+    }
+  }
+
+  Future<bool> undoAnnotationApi(String annotationUuid) async {
+    if (annotationUuid.isEmpty) return false;
+
+    try {
+      final endpoint = 'annotations/$annotationUuid/undo';
+      final response = await apiServices.callPostApi(
+        endpoint,
+        req: <String, dynamic>{},
+        isUserRequired: true,
+      );
+      return response.status;
+    } catch (e) {
+      printMessage("⚠️ Error undoing annotation API: $e");
+      return false;
+    }
+  }
+
+  Future<bool> redoAnnotationApi(String annotationUuid) async {
+    if (annotationUuid.isEmpty) return false;
+
+    try {
+      final endpoint = 'annotations/$annotationUuid/redo';
+      final response = await apiServices.callPostApi(
+        endpoint,
+        req: <String, dynamic>{},
+        isUserRequired: true,
+      );
+      return response.status;
+    } catch (e) {
+      printMessage("⚠️ Error redoing annotation API: $e");
+      return false;
+    }
+  }
+
+  Future<bool> clearPageAnnotationsApi(int pageNo) async {
+    final pdfUuid = pdfDocument.value?.id ?? '';
+    if (pdfUuid.isEmpty) return false;
+
+    try {
+      final endpoint = 'pdfs/$pdfUuid/clear-page';
+      final response = await apiServices.callPostApi(
+        endpoint,
+        req: {'page_number': pageNo},
+        isUserRequired: true,
+      );
+      return response.status;
+    } catch (e) {
+      printMessage("⚠️ Error clearing page annotations API: $e");
+      return false;
+    }
+  }
+
+  @override
+  void onClose() {
+    if (currentPusherChannel.isNotEmpty && Get.isRegistered<PusherService>()) {
+      Get.find<PusherService>().unsubscribeFromChannel(
+        currentPusherChannel,
+        _handlePusherEvent,
+      );
+    }
+    transformationController.dispose();
+    super.onClose();
+  }
+
+  void setMode(AnnotationMode mode) {
+    activeMode.value = mode;
+  }
+
+  void setColor(Color color) {
+    selectedColor.value = color;
+    if (activeMode.value == AnnotationMode.text &&
+        selectedTextAnnotationId.value.isNotEmpty) {
+      final idx = textAnnotations.indexWhere(
+        (t) => t.id == selectedTextAnnotationId.value,
+      );
+      if (idx != -1) {
+        final updated = textAnnotations[idx].copyWith(color: color);
+        textAnnotations[idx] = updated;
+        _saveTextAnnotationUpdate(updated);
+      }
+    }
+  }
+
+  void setStrokeWidth(double width) {
+    selectedStrokeWidth.value = double.parse(width.toStringAsFixed(1));
+  }
+
+  void setFontSize(double size) {
+    final formattedSize = double.parse(size.toStringAsFixed(1));
+    selectedFontSize.value = formattedSize;
+    if (selectedTextAnnotationId.value.isNotEmpty) {
+      final idx = textAnnotations.indexWhere(
+        (t) => t.id == selectedTextAnnotationId.value,
+      );
+      if (idx != -1) {
+        final updated = textAnnotations[idx].copyWith(fontSize: formattedSize);
+        textAnnotations[idx] = updated;
+        _saveTextAnnotationUpdate(updated);
+      }
+    }
+  }
+
+  void setFontWeight(FontWeight weight) {
+    selectedFontWeight.value = weight;
+    if (selectedTextAnnotationId.value.isNotEmpty) {
+      final idx = textAnnotations.indexWhere(
+        (t) => t.id == selectedTextAnnotationId.value,
+      );
+      if (idx != -1) {
+        final updated = textAnnotations[idx].copyWith(fontWeight: weight);
+        textAnnotations[idx] = updated;
+        _saveTextAnnotationUpdate(updated);
+      }
+    }
+  }
+
+  void setCrossSize(double size) {
+    selectedCrossSize.value = size;
+  }
+
+  // --- TEXT SELECTION & DRAGGING METHODS ---
+
+  void selectTextAnnotation(TextAnnotation textAnn) {
+    selectedTextAnnotationId.value = textAnn.id;
+    selectedFontSize.value = textAnn.fontSize;
+    selectedColor.value = textAnn.color;
+    selectedFontWeight.value = textAnn.fontWeight;
+  }
+
+  void clearSelectedTextAnnotation() {
+    selectedTextAnnotationId.value = '';
+  }
+
+  TextAnnotation? findTextAnnotationAt(Offset localPosition, Size renderSize) {
+    final targetPage = currentPage.value;
+    for (int i = textAnnotations.length - 1; i >= 0; i--) {
+      final textAnn = textAnnotations[i];
+      if (textAnn.pageNumber != targetPage && textAnn.pageNumber > 0) continue;
+
+      final pxPt = renderSize != Size.zero
+          ? toPixelPoint(textAnn.position, renderSize)
+          : textAnn.position;
+
+      final painter = TextPainter(
+        text: TextSpan(
+          text: textAnn.text,
+          style: TextStyle(
+            fontSize: textAnn.fontSize,
+            fontWeight: textAnn.fontWeight,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final width = painter.width;
+      final height = painter.height;
+
+      final rect = Rect.fromLTWH(
+        pxPt.dx - 14,
+        pxPt.dy - 14,
+        width + 28,
+        height + 28,
+      );
+
+      if (rect.contains(localPosition)) {
+        return textAnn;
+      }
+    }
+    return null;
+  }
+
+  void startDraggingText(
+    TextAnnotation textAnn,
+    Offset localPosition,
+    Size renderSize,
+  ) {
+    isDraggingText.value = true;
+    draggedTextId.value = textAnn.id;
+    selectTextAnnotation(textAnn);
+
+    final pxPt = renderSize != Size.zero
+        ? toPixelPoint(textAnn.position, renderSize)
+        : textAnn.position;
+
+    _dragOffsetDelta = localPosition - pxPt;
+  }
+
+  void updateDraggingText(Offset localPosition, Size renderSize) {
+    if (!isDraggingText.value || draggedTextId.value.isEmpty) return;
+
+    final targetPixelPos = localPosition - _dragOffsetDelta;
+    final newPctPos = renderSize != Size.zero
+        ? toPercentagePoint(targetPixelPos, renderSize)
+        : targetPixelPos;
+
+    final idx = textAnnotations.indexWhere((t) => t.id == draggedTextId.value);
+    if (idx != -1) {
+      textAnnotations[idx] = textAnnotations[idx].copyWith(position: newPctPos);
+    }
+  }
+
+  Future<void> endDraggingText() async {
+    if (!isDraggingText.value) return;
+    final currentDraggedId = draggedTextId.value;
+    isDraggingText.value = false;
+    draggedTextId.value = '';
+
+    if (currentDraggedId.isNotEmpty) {
+      final idx = textAnnotations.indexWhere((t) => t.id == currentDraggedId);
+      if (idx != -1) {
+        final textAnn = textAnnotations[idx];
+        await _saveTextAnnotationUpdate(textAnn);
+      }
+    }
+  }
+
+  Future<void> _saveTextAnnotationUpdate(TextAnnotation textAnn) async {
+    if (textAnn.id.isEmpty) return;
+    final payload = AnnotationModel.createTextPayload(
+      textAnn.text,
+      textAnn.position,
+      textAnn.fontSize,
+      textAnn.color,
+      fontWeight: textAnn.fontWeight,
+    );
+    final model = AnnotationModel(
+      id: textAnn.id,
+      pdfId: pdfDocument.value?.id ?? '',
+      pageNumber: textAnn.pageNumber,
+      type: 'text',
+      scale: zoomScale.value,
+      payload: payload,
+    );
+    await updateAnnotationApi(textAnn.id, model);
+  }
+
+  // --- DRAWING GESTURE HANDLERS ---
+
+  void startLine(Offset position, [Size renderSize = Size.zero]) {
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(position, renderSize)
+        : position;
+
+    if (activeMode.value == AnnotationMode.draw) {
+      currentLine.value = DrawnLine(
+        points: [pctPoint],
+        color: selectedColor.value,
+        strokeWidth: selectedStrokeWidth.value,
+        pageNumber: currentPage.value,
+      );
+    } else if (activeMode.value == AnnotationMode.erase) {
+      eraseNear(position, renderSize);
+    }
+  }
+
+  void updateLine(Offset position, [Size renderSize = Size.zero]) {
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(position, renderSize)
+        : position;
+
+    if (activeMode.value == AnnotationMode.draw && currentLine.value != null) {
+      final updatedPoints = List<Offset>.from(currentLine.value!.points)
+        ..add(pctPoint);
+      currentLine.value = DrawnLine(
+        points: updatedPoints,
+        color: selectedColor.value,
+        strokeWidth: selectedStrokeWidth.value,
+        pageNumber: currentPage.value,
+      );
+    } else if (activeMode.value == AnnotationMode.erase) {
+      eraseNear(position, renderSize);
+    }
+  }
+
+  Future<void> endLine() async {
+    if (activeMode.value == AnnotationMode.draw && currentLine.value != null) {
+      final newCompletedLine = currentLine.value!;
+      lines.add(newCompletedLine);
+      currentLine.value = null;
+
+      final payload = AnnotationModel.createDrawPayload(
+        newCompletedLine.points,
+        newCompletedLine.color,
+        newCompletedLine.strokeWidth,
+      );
+      final model = AnnotationModel(
+        id: '',
+        pdfId: pdfDocument.value?.id ?? '',
+        pageNumber: currentPage.value,
+        type: 'draw',
+        scale: zoomScale.value,
+        payload: payload,
+      );
+
+      final serverUuid = await createAnnotationApi(model);
+      if (serverUuid != null && serverUuid.isNotEmpty) {
+        final idx = lines.indexOf(newCompletedLine);
+        if (idx != -1) {
+          lines[idx] = newCompletedLine.copyWith(id: serverUuid);
+        }
+      }
+    }
+  }
+
+  // Add Text Annotation
+  Future<void> addTextAnnotation(
+    String text,
+    Offset position, [
+    Size renderSize = Size.zero,
+    FontWeight? fontWeight,
+  ]) async {
+    if (text.trim().isEmpty) return;
+
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(position, renderSize)
+        : position;
+
+    final effectiveWeight = fontWeight ?? selectedFontWeight.value;
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+    final textAnn = TextAnnotation(
+      id: tempId,
+      position: pctPoint,
+      text: text,
+      color: selectedColor.value,
+      fontSize: selectedFontSize.value,
+      fontWeight: effectiveWeight,
+      pageNumber: currentPage.value,
+    );
+
+    textAnnotations.add(textAnn);
+
+    final payload = AnnotationModel.createTextPayload(
+      text,
+      pctPoint,
+      selectedFontSize.value,
+      selectedColor.value,
+      fontWeight: effectiveWeight,
+    );
+    final model = AnnotationModel(
+      id: '',
+      pdfId: pdfDocument.value?.id ?? '',
+      pageNumber: currentPage.value,
+      type: 'text',
+      scale: zoomScale.value,
+      payload: payload,
+    );
+
+    final serverUuid = await createAnnotationApi(model);
+    if (serverUuid != null && serverUuid.isNotEmpty) {
+      final idx = textAnnotations.indexOf(textAnn);
+      if (idx != -1) {
+        textAnnotations[idx] = textAnn.copyWith(id: serverUuid);
+      }
+    }
+  }
+
+  // Add Cross Annotation
+  Future<void> addCrossAnnotation(
+    Offset position, [
+    Size renderSize = Size.zero,
+  ]) async {
+    final pctPoint = renderSize != Size.zero
+        ? toPercentagePoint(position, renderSize)
+        : position;
+
+    final tempId = DateTime.now().millisecondsSinceEpoch.toString();
+    final crossAnn = CrossAnnotation(
+      id: tempId,
+      position: pctPoint,
+      size: selectedCrossSize.value,
+      color: selectedColor.value,
+      pageNumber: currentPage.value,
+    );
+
+    crossAnnotations.add(crossAnn);
+
+    final payload = AnnotationModel.createCrossPayload(
+      pctPoint,
+      selectedCrossSize.value,
+      selectedColor.value,
+    );
+    final model = AnnotationModel(
+      id: '',
+      pdfId: pdfDocument.value?.id ?? '',
+      pageNumber: currentPage.value,
+      type: 'cross',
+      scale: zoomScale.value,
+      payload: payload,
+    );
+
+    final serverUuid = await createAnnotationApi(model);
+    if (serverUuid != null && serverUuid.isNotEmpty) {
+      final idx = crossAnnotations.indexOf(crossAnn);
+      if (idx != -1) {
+        crossAnnotations[idx] = crossAnn.copyWith(id: serverUuid);
+      }
+    }
+  }
+
+  // --- Geometric Distance Helpers for Precise Erasing ---
+  double _distanceToSegment(Offset p, Offset a, Offset b) {
+    final dx = b.dx - a.dx;
+    final dy = b.dy - a.dy;
+    final lengthSquared = dx * dx + dy * dy;
+
+    if (lengthSquared == 0) {
+      return (p - a).distance;
+    }
+
+    final t = (((p.dx - a.dx) * dx + (p.dy - a.dy) * dy) / lengthSquared).clamp(
+      0.0,
+      1.0,
+    );
+
+    final projX = a.dx + t * dx;
+    final projY = a.dy + t * dy;
+
+    final diffX = p.dx - projX;
+    final diffY = p.dy - projY;
+    return math.sqrt(diffX * diffX + diffY * diffY);
+  }
+
+  double _distanceToDrawnLine(
+    DrawnLine line,
+    Offset position,
+    Size renderSize,
+  ) {
+    if (line.points.isEmpty) return double.infinity;
+
+    final pxPoints = line.points.map((pt) {
+      return renderSize != Size.zero ? toPixelPoint(pt, renderSize) : pt;
+    }).toList();
+
+    if (pxPoints.length == 1) {
+      return (pxPoints.first - position).distance;
+    }
+
+    double minDistance = double.infinity;
+    for (int i = 0; i < pxPoints.length - 1; i++) {
+      final dist = _distanceToSegment(position, pxPoints[i], pxPoints[i + 1]);
+      if (dist < minDistance) {
+        minDistance = dist;
+      }
+    }
+    return minDistance;
+  }
+
+  double _distanceToTextAnnotation(
+    TextAnnotation textAnn,
+    Offset position,
+    Size renderSize,
+  ) {
+    final pxPt = renderSize != Size.zero
+        ? toPixelPoint(textAnn.position, renderSize)
+        : textAnn.position;
+
+    final painter = TextPainter(
+      text: TextSpan(
+        text: textAnn.text,
+        style: TextStyle(
+          fontSize: textAnn.fontSize,
+          fontWeight: textAnn.fontWeight,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    final rect = Rect.fromLTWH(pxPt.dx, pxPt.dy, painter.width, painter.height);
+
+    if (rect.contains(position)) {
+      return 0.0;
+    }
+
+    final dx = position.dx < rect.left
+        ? rect.left - position.dx
+        : (position.dx > rect.right ? position.dx - rect.right : 0.0);
+    final dy = position.dy < rect.top
+        ? rect.top - position.dy
+        : (position.dy > rect.bottom ? position.dy - rect.bottom : 0.0);
+
+    return math.sqrt(dx * dx + dy * dy);
+  }
+
+  double _distanceToCrossAnnotation(
+    CrossAnnotation crossAnn,
+    Offset position,
+    Size renderSize,
+  ) {
+    final center = renderSize != Size.zero
+        ? toPixelPoint(crossAnn.position, renderSize)
+        : crossAnn.position;
+    final half = crossAnn.size / 2;
+    final rect = Rect.fromLTWH(
+      center.dx - half,
+      center.dy - half,
+      crossAnn.size,
+      crossAnn.size,
+    );
+
+    if (rect.contains(position)) {
+      return 0.0;
+    }
+
+    final dx = position.dx < rect.left
+        ? rect.left - position.dx
+        : (position.dx > rect.right ? position.dx - rect.right : 0.0);
+    final dy = position.dy < rect.top
+        ? rect.top - position.dy
+        : (position.dy > rect.bottom ? position.dy - rect.bottom : 0.0);
+
+    return math.sqrt(dx * dx + dy * dy);
+  }
+
+  // Eraser Logic - 100% Accurate Nearest Hit Detection
+  Future<void> eraseNear(Offset position, [Size renderSize = Size.zero]) async {
+    final targetPage = currentPage.value;
+
+    dynamic closestAnnotation;
+    double minDistance = double.infinity;
+
+    // 1. Evaluate Drawn Lines (Strokes)
+    for (int i = lines.length - 1; i >= 0; i--) {
+      final line = lines[i];
+      if (line.pageNumber != targetPage && line.pageNumber > 0) continue;
+
+      final dist = _distanceToDrawnLine(line, position, renderSize);
+      final maxAllowed = (line.strokeWidth / 2) + 12.0;
+
+      if (dist <= maxAllowed && dist < minDistance) {
+        minDistance = dist;
+        closestAnnotation = line;
+      }
+    }
+
+    // 2. Evaluate Text Annotations
+    for (int i = textAnnotations.length - 1; i >= 0; i--) {
+      final textAnn = textAnnotations[i];
+      if (textAnn.pageNumber != targetPage && textAnn.pageNumber > 0) continue;
+
+      final dist = _distanceToTextAnnotation(textAnn, position, renderSize);
+      const maxAllowed = 12.0;
+
+      if (dist <= maxAllowed && dist < minDistance) {
+        minDistance = dist;
+        closestAnnotation = textAnn;
+      }
+    }
+
+    // 3. Evaluate Cross Annotations
+    for (int i = crossAnnotations.length - 1; i >= 0; i--) {
+      final crossAnn = crossAnnotations[i];
+      if (crossAnn.pageNumber != targetPage && crossAnn.pageNumber > 0) {
+        continue;
+      }
+
+      final dist = _distanceToCrossAnnotation(crossAnn, position, renderSize);
+      final maxAllowed = (crossAnn.size / 2) + 10.0;
+
+      if (dist <= maxAllowed && dist < minDistance) {
+        minDistance = dist;
+        closestAnnotation = crossAnn;
+      }
+    }
+
+    // Delete ONLY the single closest candidate found
+    if (closestAnnotation != null) {
+      if (closestAnnotation is DrawnLine) {
+        lines.remove(closestAnnotation);
+        if (closestAnnotation.id.isNotEmpty) {
+          await deleteAnnotationApi(closestAnnotation.id);
+        }
+      } else if (closestAnnotation is TextAnnotation) {
+        textAnnotations.remove(closestAnnotation);
+        if (closestAnnotation.id.isNotEmpty) {
+          await deleteAnnotationApi(closestAnnotation.id);
+        }
+      } else if (closestAnnotation is CrossAnnotation) {
+        crossAnnotations.remove(closestAnnotation);
+        if (closestAnnotation.id.isNotEmpty) {
+          await deleteAnnotationApi(closestAnnotation.id);
+        }
+      }
+    }
+  }
+
+  // Clear All Annotations for Current Page
+  Future<void> clearAllAnnotations() async {
+    final pageNo = currentPage.value;
+    lines.removeWhere((l) => l.pageNumber == pageNo);
+    textAnnotations.removeWhere((t) => t.pageNumber == pageNo);
+    crossAnnotations.removeWhere((c) => c.pageNumber == pageNo);
+    currentLine.value = null;
+
+    await clearPageAnnotationsApi(pageNo);
+  }
+
+  Future<void> undo() async {
+    final targetPage = currentPage.value;
+    if (lines.any((l) => l.pageNumber == targetPage)) {
+      final lastLine = lines.lastWhere((l) => l.pageNumber == targetPage);
+      lines.remove(lastLine);
+      redoStack.add({'type': 'line', 'item': lastLine});
+      if (lastLine.id.isNotEmpty) {
+        await undoAnnotationApi(lastLine.id);
+      }
+    } else if (textAnnotations.any((t) => t.pageNumber == targetPage)) {
+      final lastText = textAnnotations.lastWhere(
+        (t) => t.pageNumber == targetPage,
+      );
+      textAnnotations.remove(lastText);
+      redoStack.add({'type': 'text', 'item': lastText});
+      if (lastText.id.isNotEmpty) {
+        await undoAnnotationApi(lastText.id);
+      }
+    } else if (crossAnnotations.any((c) => c.pageNumber == targetPage)) {
+      final lastCross = crossAnnotations.lastWhere(
+        (c) => c.pageNumber == targetPage,
+      );
+      crossAnnotations.remove(lastCross);
+      redoStack.add({'type': 'cross', 'item': lastCross});
+      if (lastCross.id.isNotEmpty) {
+        await undoAnnotationApi(lastCross.id);
+      }
+    }
+  }
+
+  // Redo Last Action
+  Future<void> redo() async {
+    if (redoStack.isNotEmpty) {
+      final lastAction = redoStack.removeLast();
+      final type = lastAction['type'];
+      final item = lastAction['item'];
+
+      if (type == 'line' && item is DrawnLine) {
+        lines.add(item);
+        if (item.id.isNotEmpty) {
+          await redoAnnotationApi(item.id);
+        }
+      } else if (type == 'text' && item is TextAnnotation) {
+        textAnnotations.add(item);
+        if (item.id.isNotEmpty) {
+          await redoAnnotationApi(item.id);
+        }
+      } else if (type == 'cross' && item is CrossAnnotation) {
+        crossAnnotations.add(item);
+        if (item.id.isNotEmpty) {
+          await redoAnnotationApi(item.id);
+        }
+      }
+    }
+  }
+}

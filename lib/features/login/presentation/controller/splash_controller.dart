@@ -23,11 +23,7 @@ class SplashController extends GetxController {
     Timer(const Duration(seconds: 3), () {
       final isLoggedIn = SharedPrefManager().isLoggedIn;
       if (isLoggedIn) {
-        if (SharedPrefManager().isCustomer) {
-          Get.offAllNamed(AppRoutes.customerDashboard);
-        } else {
-          Get.offAllNamed(AppRoutes.dashboard);
-        }
+        Get.offAllNamed(AppRoutes.dashboard);
       } else {
         Get.offAllNamed(AppRoutes.login);
       }

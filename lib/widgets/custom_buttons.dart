@@ -11,6 +11,7 @@ class CustomButton extends StatelessWidget {
   final bool isLoading;
   final double? width;
   final IconData? icon;
+  final Widget? trailingWidget;
 
   const CustomButton({
     super.key,
@@ -23,6 +24,7 @@ class CustomButton extends StatelessWidget {
     this.isLoading = false,
     this.width,
     this.icon,
+    this.trailingWidget,
   });
 
   @override
@@ -41,7 +43,7 @@ class CustomButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.symmetric(
-            vertical: isLoading ? 0 : 10,
+            vertical: isLoading ? 0 : 8,
             horizontal: 12,
           ),
           backgroundColor: effectiveBgColor,
@@ -58,25 +60,39 @@ class CustomButton extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(effectiveTextColor),
                 ),
               )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+            : Stack(
+                alignment: Alignment.center,
                 children: [
-                  Text(
-                    title,
-                    style: textTheme.titleMedium?.copyWith(
-                      color: effectiveTextColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          style: textTheme.titleMedium?.copyWith(
+                            color: effectiveTextColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        if (icon != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            icon,
+                            color: effectiveTextColor,
+                            size: 20,
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  if (icon != null) ...[
-                    const SizedBox(width: 8),
-                    Icon(
-                      icon,
-                      color: effectiveTextColor,
-                      size: 20,
+                  if (trailingWidget != null)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: trailingWidget,
                     ),
-                  ],
                 ],
               ),
       ),

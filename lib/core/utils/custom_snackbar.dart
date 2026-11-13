@@ -65,50 +65,88 @@ class CustomSnackBar {
     required Color backgroundColor,
     required Duration duration,
   }) {
-    Get.snackbar(
-      title,
-      message,
-      titleText: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
+    Get.showSnackbar(
+      GetSnackBar(
+        backgroundColor: backgroundColor,
+        duration: duration,
+        snackPosition: SnackPosition.TOP,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        borderRadius: 16,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        isDismissible: true,
+        dismissDirection: DismissDirection.horizontal,
+        forwardAnimationCurve: Curves.easeOutBack,
+        reverseAnimationCurve: Curves.easeIn,
+        boxShadows: [
+          BoxShadow(
+            color: backgroundColor.withValues(alpha: 0.35),
+            blurRadius: 16,
+            spreadRadius: 1,
+            offset: const Offset(0, 6),
+          ),
+        ],
+        messageText: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(width: 12),
+            // Icon
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Colors.white, size: 17),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Title + Message
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    message,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Close button
+            GestureDetector(
+              onTap: () => Get.back(),
+              child: Icon(
+                Icons.close,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: 20,
+              ),
+            ),
+          ],
         ),
       ),
-      messageText: Text(
-        message,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.9),
-          fontSize: 13,
-        ),
-      ),
-      icon: Container(
-        margin: const EdgeInsets.only(left: 10),
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 22),
-      ),
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: backgroundColor,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      borderRadius: 16,
-      duration: duration,
-      isDismissible: true,
-      dismissDirection: DismissDirection.horizontal,
-      forwardAnimationCurve: Curves.easeOutBack,
-      reverseAnimationCurve: Curves.easeIn,
-      boxShadows: [
-        BoxShadow(
-          color: backgroundColor.withValues(alpha: 0.35),
-          blurRadius: 16,
-          spreadRadius: 1,
-          offset: const Offset(0, 6),
-        ),
-      ],
     );
   }
 }
